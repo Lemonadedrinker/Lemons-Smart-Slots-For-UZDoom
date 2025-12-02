@@ -1,0 +1,10 @@
+AddOptionMenu "OptionsMenu"
+{
+    Submenu "Lemon's Custom Slots", "SlotsOptions"
+}
+
+OptionMenu "SlotsOptions"
+{
+    Title "Lemon's Custom Slots"
+    Control "Edit Slots", "event LCS_Edit"
+}
