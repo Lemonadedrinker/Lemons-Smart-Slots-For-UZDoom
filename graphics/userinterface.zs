@@ -7,7 +7,7 @@ extend class LCS_EventHandler
 
     ui Vector2 mouseSlot;
 
-    ui float scalingFactor;
+    ui int scalingFactor;
     ui int boxWidth;
     ui int boxHeight;
     ui int bevel;
@@ -134,10 +134,12 @@ extend class LCS_EventHandler
 
     private ui void DrawWeaponBoxes()
     {
-        for (int i = 0; i < 10; i++)
+        for (int slot = 0; slot < 10; slot++)
         {
             int row = 0;
-            int currentSlot = (i == 9) ? 0 : i + 1;
+            int currentSlot = (slot == 9) ? 0 : slot + 1;
+
+            /*
             for (int j = 0; j < currentWeapons.Size(); j++)
             {
                 if (currentWeapons[j].slot == currentSlot)
@@ -147,6 +149,32 @@ extend class LCS_EventHandler
 
                     DrawWeaponBox(i, row, currentWeapons[j], highlighted);
                     row++;
+                }
+            }
+            */
+            
+            // This is the list of weapons for the slot
+            String savedWeaponString = CVar.GetCvar("LCS_Slot"..currentSlot, players[ConsolePlayer]).GetString();
+            //Console.printf(weaponString);
+
+            // Here the list is split by comma into the weaponList
+            Array<String> savedWeaponList;
+            savedWeaponString.Split(savedWeaponList, ",");
+
+            // Check each saved weapon in the comma separated list
+            for (int savedWeapon = 0; savedWeapon < savedWeaponList.Size(); savedWeapon++)
+            {
+                // See if the saved weapon is a currently held weapon
+                for (int i = 0; i < currentWeapons.Size(); i++)
+                {
+                    if (savedWeaponList[savedWeapon] == currentWeapons[i].weapon.GetClassName())
+                    {
+                        // Highlight the slot if the cursor is underneath it
+                        bool highlighted = (slot == mouseSlot.X && row == mouseSlot.Y);
+
+                        DrawWeaponBox(slot, row, currentWeapons[i], highlighted);
+                        row++;
+                    }
                 }
             }
         }
@@ -166,14 +194,24 @@ extend class LCS_EventHandler
             highlighted
         );
 
+        Screen.DrawTexture(
+            currentWeapon.weapon.FindState("Spawn", true).GetSpriteTexture(0, 0, (0, 0)),
+            true,
+            (boxWidth * slot) + (boxWidth / 2),
+            (boxHeight * (row + 1.2)),
+            DTA_ScaleX, scalingFactor * 1,
+            DTA_ScaleY, scalingFactor * 1
+        );
+
         Screen.DrawText(
             OriginalSmallFont, 
             fontColor, 
-            i * boxWidth + (boxWidth / 2) - scalingFactor * 8, 
-            boxHeight / 4 - scalingFactor * 7, 
-            ""..(digit),
-            DTA_ScaleX, scalingFactor * 2,
-            DTA_ScaleY, scalingFactor * 2
+            slot * boxWidth + 2 * bevel, 
+            (row + 1.3) * boxHeight, 
+            currentWeapon.weapon.GetClassName(),
+            DTA_ScaleX, scalingFactor / 2,
+            DTA_ScaleY, scalingFactor / 2,
+            DTA_TextLen, 11
         );
     }
 }
