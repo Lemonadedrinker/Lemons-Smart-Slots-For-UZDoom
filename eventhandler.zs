@@ -1,7 +1,7 @@
 class LCS_EventHandler : EventHandler
 {
     ui bool isEditing;
-    ui Array<Weapon> currentWeapons;
+    ui Array<LCS_Weapon> currentWeapons;
     ui Vector2 MousePosition;
 
     /**
@@ -47,28 +47,32 @@ class LCS_EventHandler : EventHandler
         for (let item = player.mo.Inv; item != null; item = item.Inv)
         {
             // Cast item as a weapon
-            let weapon = Weapon(item);
+            let playerWeapon = Weapon(item);
 
             // If the cast fails, keep going
-            if (!weapon) continue;
+            if (!playerWeapon) continue;
 
-            slot = weapon.SlotNumber;
+            slot = playerWeapon.SlotNumber;
 
             // Vanilla Doom weapons need to be hardcoded because ZDoom does not
             // automatically assign slots to them (I think)
-            if(weapon is 'Fist' || weapon is 'Chainsaw') slot = 1;
-            else if (weapon is 'Pistol') slot = 2;
-            else if (weapon is 'Shotgun' || weapon is 'SuperShotgun') slot = 3;
-            else if (weapon is 'Chaingun') slot = 4;
-            else if (weapon is 'RocketLauncher') slot = 5;
-            else if (weapon is 'PlasmaRifle') slot = 6;
-            else if (weapon is 'BFG9000') slot = 7;
+            if(playerWeapon is 'Fist' || playerWeapon is 'Chainsaw') slot = 1;
+            else if (playerWeapon is 'Pistol') slot = 2;
+            else if (playerWeapon is 'Shotgun' || playerWeapon is 'SuperShotgun') slot = 3;
+            else if (playerWeapon is 'Chaingun') slot = 4;
+            else if (playerWeapon is 'RocketLauncher') slot = 5;
+            else if (playerWeapon is 'PlasmaRifle') slot = 6;
+            else if (playerWeapon is 'BFG9000') slot = 7;
 
             // Check if the item is on slots 0-9
             if ((slot < 0) || (slot > 9)) continue;
             
             // Weapon found!!
-            currentWeapons.Push(weapon);
+            let newWeapon = new('LCS_Weapon');
+            newWeapon.weapon = playerWeapon;
+            newWeapon.slot = slot;
+
+            currentWeapons.Push(newWeapon);
             //Console.printf(" HAVE: " .. weapon.GetClassName() .. " in slot #" .. slot .. " and priority: " .. priority);
         }
     }
