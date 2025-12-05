@@ -454,7 +454,7 @@ extend class LCS_EventHandler
 
         // Delete the weapon at the index
         String newOldString = oldCVar.GetString();
-        newOldString.Remove(oldIndex, selectedWeaponString.Length() - 1);
+        newOldString.Remove(oldIndex, selectedWeaponString.Length() + 1);
         oldCVar.SetString(newOldString);
 
         // Refresh the screen
