@@ -72,7 +72,7 @@ class LCS_EventHandler : EventHandler
             slotSelected = (-1, -1);
             hasSlotSelected = false;
             selectedWeaponString = "";
-            
+
             SendNetworkEvent("LCS_NotEditing");
         }
 
@@ -86,7 +86,7 @@ class LCS_EventHandler : EventHandler
         // Mouse left click
         if (event.Type == event.Type_LButtonDown && mouseClicked == false)
         {
-            Console.printf("Mouse clicked!");
+            //Console.printf("Mouse clicked!");
             mouseClicked = true;
         }
         else
@@ -98,7 +98,7 @@ class LCS_EventHandler : EventHandler
 
         if (event.Type == event.Type_LButtonDown && mouseClicked == false)
         {
-            Console.printf("Mouse clicked!");
+            //Console.printf("Mouse clicked!");
             mouseClicked = true;
         }
 
@@ -151,7 +151,7 @@ class LCS_EventHandler : EventHandler
             String weaponName = event.Name;
             weaponName.Remove(0, 18);
 
-            Console.printf("%s", weaponName);
+            //Console.printf("%s", weaponName);
             player.mo.A_SelectWeapon(weaponName);
         }
 

@@ -374,14 +374,14 @@ extend class LCS_EventHandler
             slotSelected = (-1, -1);
             hasSlotSelected = false;
             selectedWeaponString = "";
-            Console.printf("Nothing happened...");
+            //Console.printf("Nothing happened...");
             return;
         }
 
         int oldCurrentSlot = (slotSelected.X == 9) ? 0 : slotSelected.X + 1;
         int newCurrentSlot = (slotNumber == 9) ? 0 : slotNumber + 1;
 
-        Console.printf(" oldslot: %i, newslot: %i", oldCurrentSlot, newCurrentSlot);
+        //Console.printf(" oldslot: %i, newslot: %i", oldCurrentSlot, newCurrentSlot);
 
         // This is the list of weapons for the slots
         CVar oldCVar = CVar.GetCvar("LCS_Slot"..oldCurrentSlot, players[ConsolePlayer]);
@@ -407,7 +407,7 @@ extend class LCS_EventHandler
         {
             if (currentWeaponStrings.Find(oldSlotWeaponCVars[i]) != currentWeaponStrings.Size())
             {
-                Console.printf("Old slot weapon: " .. oldSlotWeaponCVars[i]);
+                //Console.printf("Old slot weapon: " .. oldSlotWeaponCVars[i]);
 
                 oldSlotCurrentWeapons.push(oldSlotWeaponCVars[i]);
             }
@@ -418,7 +418,7 @@ extend class LCS_EventHandler
         {
             if (currentWeaponStrings.Find(newSlotWeaponCVars[i]) != currentWeaponStrings.Size())
             {
-                Console.printf("New weapon:" .. newSlotWeaponCVars[i]);
+                //Console.printf("New weapon:" .. newSlotWeaponCVars[i]);
                 newSlotCurrentWeapons.push(newSlotWeaponCVars[i]);
             }
         }
@@ -426,36 +426,98 @@ extend class LCS_EventHandler
         // Determine the indices
         // The old index is where the weapon is removed in the cvar,
         // the new one is where the weapon is added
-
         int newIndex;
-        if (slotNumber > newSlotCurrentWeapons.Size())
+        if (slotRow > newSlotCurrentWeapons.Size())
         {
             newIndex = newSlotCurrentWeapons.Size();
         }
         else
         {
-            newIndex = slotNumber;
+            newIndex = slotRow;
         }
 
-        // Now create the strings to replace the CVars
-        String newString;
-        for (int i = 0; i < newSlotCurrentWeapons.Size(); i++)
+        // Adds the weapon to the new slot
+        // Weapon being inserted into the list
+        int newCVarStringIndex;
+        bool isSameSlot = slotSelected.X == slotNumber;
+        String CVarNoWeapon = newCVar.GetString();
+        // Weapon added to the middle of the slot
+        if (newIndex < newSlotCurrentWeapons.Size())
         {
-            newString = newSlotCurrentWeapons[i];
-        }
-        Console.printf(newString);
-        //newCVar.setString(newString);
+            // Normal case
+            if (!isSameSlot)
+            {
+                newCVarStringIndex = newCVar.GetString().IndexOf(newSlotCurrentWeapons[newIndex]);
+                //Console.printf(" newCVar: "..newCVar.GetString().Left(newCVarStringIndex).." SPLIT "..newCVar.GetString().Mid(newCVarStringIndex));
+                newCVar.SetString(newCVar.GetString().Left(newCVarStringIndex)..selectedWeaponString..","..newCVar.GetString().Mid(newCVarStringIndex));
+            }
+            // Need to exclude the old weapon here
+            else
+            {
+                // If the new slot is before the current slot
+                if (newIndex < slotSelected.Y)
+                {
+                    //Console.printf(" CVarNoWeapon1: "..CVarNoWeapon);
+                    CVarNoWeapon.Remove(CVarNoWeapon.IndexOf(selectedWeaponString), selectedWeaponString.Length() + 1);
+                    //Console.printf(" CVarNoWeapon2: "..CVarNoWeapon);
 
-        newCVar.SetString(newCVar.GetString()..selectedWeaponString..",");
+                    //Console.printf("Before");
+                    
+                    newCVarStringIndex = CVarNoWeapon.IndexOf(newSlotCurrentWeapons[newIndex]);
+                    //Console.printf(" newCVar: "..CVarNoWeapon.Left(newCVarStringIndex).." SPLIT "..CVarNoWeapon.Mid(newCVarStringIndex - 1));
+                    newCVar.SetString(CVarNoWeapon.Left(newCVarStringIndex)..selectedWeaponString..","..CVarNoWeapon.Mid(newCVarStringIndex));
+                }
+                // If the new slot is after the current slot
+                else
+                {
+                    // Need to decrement to avoid going out of bounds
+                    if (newIndex < newSlotCurrentWeapons.Size() - 1)
+                    {
+                        //Console.printf("After");
+                        // Delete the old weapon
+                        CVarNoWeapon.Remove(CVarNoWeapon.IndexOf(selectedWeaponString), selectedWeaponString.Length() + 1);
+
+                        newCVarStringIndex = CVarNoWeapon.IndexOf(newSlotCurrentWeapons[newIndex + 1]);
+                        //Console.printf(" newCVar: "..CVarNoWeapon.Left(newCVarStringIndex).." SPLIT "..CVarNoWeapon.Mid(newCVarStringIndex - 1));
+                        newCVar.SetString(CVarNoWeapon.Left(newCVarStringIndex)..selectedWeaponString..","..CVarNoWeapon.Mid(newCVarStringIndex));
+                    }
+                    else
+                    {
+                        //newCVarStringIndex = CVarNoWeapon.IndexOf(newSlotCurrentWeapons[newIndex]);
+                        //Console.printf("Very end");
+                        // Delete the old weapon
+                        CVarNoWeapon.Remove(CVarNoWeapon.IndexOf(selectedWeaponString), selectedWeaponString.Length() + 1);
+                        // Tack the weapon on to the end
+                        newCVar.SetString(CVarNoWeapon..selectedWeaponString..",");
+                    }
+                }
+            }
+        }
+        // Weapon added to the end of the list
+        else
+        {
+            if (!isSameSlot)
+            {
+                newCVar.SetString(newCVar.GetString()..selectedWeaponString..",");
+            }
+            else
+            {
+                CVarNoWeapon.Remove(CVarNoWeapon.IndexOf(selectedWeaponString), selectedWeaponString.Length() + 1);
+                newCVar.SetString(CVarNoWeapon..selectedWeaponString..",");
+            }
+        }
 
         // Delete the old CVar
         // Need the index
         int oldIndex = oldCVar.getString().IndexOf(selectedWeaponString);
 
-        // Delete the weapon at the index
-        String newOldString = oldCVar.GetString();
-        newOldString.Remove(oldIndex, selectedWeaponString.Length() + 1);
-        oldCVar.SetString(newOldString);
+        // Delete the weapon at the index, only if a different slot
+        if (!isSameSlot)
+        {
+            String newOldString = oldCVar.GetString();
+            newOldString.Remove(oldIndex, selectedWeaponString.Length() + 1);
+            oldCVar.SetString(newOldString);
+        }
 
         // Refresh the screen
         needsWeaponUpdate = true;
