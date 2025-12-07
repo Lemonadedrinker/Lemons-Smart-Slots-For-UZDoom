@@ -82,60 +82,28 @@ class LCS_EventHandler : EventHandler
             MousePosition = (event.MouseX, event.MouseY);
         }
 
-        /*
-        // Mouse left click
-        if (event.Type == event.Type_LButtonDown && mouseClicked == false)
+        // Try to switch weapons
+        int keyChar = event.KeyChar;
+        //Console.printf("%i", keyChar);
+        if (keyChar > 47 && keyChar < 58)
         {
-            //Console.printf("Mouse clicked!");
-            mouseClicked = true;
-        }
-        else
-        {
-            //Console.printf("Mouse not clicked!");
-            mouseClicked = false;
-        }
-        */
+            int slot = keyChar - 48;
+            int weaponSlot = (slot != 0) ? slot : 0;
+            //Console.printf(" slot: %i, weaponSlot: %i", slot, weaponSlot);
 
-        if (event.Type == event.Type_LButtonDown && mouseClicked == false)
-        {
-            //Console.printf("Mouse clicked!");
-            mouseClicked = true;
-        }
-
-        /*
-        // Used to catch any keys that should disable the user interface
-        Array<Int> boundKeys;
-        Bindings.GetAllKeysForCommand(boundKeys, "event LCS_Edit");
-        bool exitKeyPressed = false;
-        
-        // Check if the keybind was pressed
-        // Also should handle if there are no bound keys
-        for (int i = 0; i < boundKeys.Size(); i++)
-        {
-            //Console.printf("Key pressed: %i and Bound Key: %s", event.KeyScan, Bindings.GetBinding(boundKeys[i]));
-            if (event.KeyChar == boundKeys[i]) exitKeyPressed = true;
-        }
-
-        // Hardcoded 27 is ASCII for the esc key as well as
-        // whatever keybinds the user has bound
-        if (event.KeyChar == 27 || exitKeyPressed)
-        {
-            isEditing = false;
-            SendNetworkEvent("LCS_NotEditing");
-        }
-        */
-
-        return false;
-    }
-
-    override void UiTick()
-    {
-        if (needsWeaponUpdate)
-        {
-            needsWeaponUpdate = false;
             UpdateCurrentWeaponsArray();
             SaveCurrentWeaponsToDisk();
+
+            PlayerSlotNumberSelected(weaponSlot);
         }
+
+        if (event.Type == event.Type_LButtonDown && mouseClicked == false)
+        {
+            //Console.printf("Mouse clicked!");
+            mouseClicked = true;
+        }
+
+        return false;
     }
 
     override void NetworkProcess(ConsoleEvent event)
@@ -175,8 +143,8 @@ class LCS_EventHandler : EventHandler
     ui void UpdateCurrentWeaponsArray()
     {
         Let player = players[Consoleplayer];
-        currentWeapons.Clear();
-        int slot = -1;
+        Array<LCS_Weapon> tempWeaponArray;
+        int defaultSlot = -1;
         int priority;
         // GZDoom's inventory can be parsed through as a linked list, where
         // Inv is the next item in the list.
@@ -188,28 +156,92 @@ class LCS_EventHandler : EventHandler
             // If the cast fails, keep going
             if (!playerWeapon) continue;
 
-            slot = playerWeapon.SlotNumber;
-
-            // Vanilla Doom weapons need to be hardcoded because ZDoom does not
-            // automatically assign slots to them (I think)
-            if(playerWeapon is 'Fist' || playerWeapon is 'Chainsaw') slot = 1;
-            else if (playerWeapon is 'Pistol') slot = 2;
-            else if (playerWeapon is 'Shotgun' || playerWeapon is 'SuperShotgun') slot = 3;
-            else if (playerWeapon is 'Chaingun') slot = 4;
-            else if (playerWeapon is 'RocketLauncher') slot = 5;
-            else if (playerWeapon is 'PlasmaRifle') slot = 6;
-            else if (playerWeapon is 'BFG9000') slot = 7;
+            defaultSlot = playerWeapon.SlotNumber;
 
             // Check if the item is on slots 0-9
-            if ((slot < 0) || (slot > 9)) continue;
+            if ((defaultSlot < 0) || (defaultSlot > 9)) continue;
             
             // Weapon found!!
             let newWeapon = new('LCS_Weapon');
             newWeapon.weapon = playerWeapon;
-            newWeapon.slot = slot;
 
-            currentWeapons.Push(newWeapon);
-            //Console.printf(" HAVE: " .. weapon.GetClassName() .. " in slot #" .. slot .. " and priority: " .. priority);
+            tempWeaponArray.Push(newWeapon);
+            //Console.printf(" HAVE: " .. newWeapon.weapon.GetClassName() .. " in slot #" .. defaultSlot .. " and priority: " .. priority);
+        }
+
+        // Now we parse through the CVars to precompute the slots and priorities
+        currentWeapons.Clear();
+        int row[10];
+        LCS_Weapon tempWeapon;
+
+        for (int slot = 0; slot < 10; slot++)
+        {
+            int currentSlot = (slot == 9) ? 0 : slot + 1;
+
+            // This is the list of weapons for the slot
+            String savedWeaponString = CVar.GetCvar("LCS_Slot"..currentSlot, players[ConsolePlayer]).GetString();
+            //Console.printf(savedWeaponString);
+
+            // Here the list is split by comma into the weaponList
+            Array<String> savedWeaponList;
+            savedWeaponString.Split(savedWeaponList, ",");
+
+            // Check each saved weapon in the comma separated list
+            for (int savedWeapon = 0; savedWeapon < savedWeaponList.Size(); savedWeapon++)
+            {
+                //Console.printf("Weapon in CVar: "..savedWeaponList[savedWeapon]);
+                // Check if the saved weapon is currently held
+                // We go backwards to more easily remove weapons from the list
+                for (int currentWeapon = tempWeaponArray.Size() - 1; currentWeapon >= 0; currentWeapon--)
+                {
+                    if (savedWeaponList[savedWeapon] == tempWeaponArray[currentWeapon].weapon.GetClassName())
+                    {
+                        tempWeapon = tempWeaponArray[currentWeapon];
+                        tempWeapon.slot = slot;
+                        tempWeapon.row = row[slot];
+                        currentWeapons.push(tempWeapon);
+
+                        //Console.printf(" Temp weapon: "..tempWeapon.weapon.GetClassName());
+
+                        tempWeaponArray.Delete(currentWeapon);
+                        //currentWeapon--;
+                        //Console.printf(" tempWeaponArray size: "..tempWeaponArray.Size());
+                        row[slot]++;
+                    }
+                }
+            }
+        }
+
+        // These weapons did not get popped, meaning they were not already saved in the CVar
+        // Assign their default slots, priority might be unpredictable
+        for (int i = 0; i < tempWeaponArray.Size(); i++)
+        {
+            tempWeapon = tempWeaponArray[i];
+            
+            // Vanilla Doom weapons need to be hardcoded because ZDoom does not
+            // automatically assign slots to them (I think)
+            if (tempWeapon.GetClassName() == 'Fist' || tempWeapon.GetClassName() == 'Chainsaw') tempWeapon.row = 0;
+            else if (tempWeapon.GetClassName() == 'Pistol') tempWeapon.row = 1;
+            else if (tempWeapon.GetClassName() == 'Shotgun' || tempWeapon.GetClassName() == 'SuperShotgun') tempWeapon.row = 2;
+            else if (tempWeapon.GetClassName() == 'Chaingun') tempWeapon.row = 3;
+            else if (tempWeapon.GetClassName() == 'RocketLauncher') tempWeapon.row = 4;
+            else if (tempWeapon.GetClassName() == 'PlasmaRifle') tempWeapon.row = 5;
+            else if (tempWeapon.GetClassName() == 'BFG9000') tempWeapon.row = 6;
+            else
+            {
+                int storedSlot = (tempWeapon.weapon.SlotNumber != 0) ? tempWeapon.weapon.SlotNumber - 1 : 9;
+                tempWeapon.slot = storedSlot;
+            }
+
+            tempWeapon.row = row[tempWeapon.weapon.SlotNumber];
+            row[tempWeapon.weapon.SlotNumber]++;
+
+            //Console.printf(" Temp weapon2: "..tempWeapon.weapon.GetClassName());
+
+            //Console.printf(tempWeapon.weapon.GetClassName().." stored in slot index %i", tempWeapon.slot);
+
+            // Finally add to the array
+            currentWeapons.Push(tempWeapon);
         }
     }
 
@@ -220,9 +252,12 @@ class LCS_EventHandler : EventHandler
     */
     ui void SaveCurrentWeaponsToDisk()
     {
+        int currentSlot;
+        //Console.printf(" currentWeapons.Size(): "..currentWeapons.Size());
         // Check for each weapon
-        for (let weaponIndex = 0; weaponIndex < currentWeapons.Size(); weaponIndex++)
+        for (let i = 0; i < currentWeapons.Size(); i++)
         {
+            //Console.printf(" currentWeapon: "..currentWeapons[i].weapon.GetClassName());
             // First we check if the weapons are saved
             bool isSaved = false;
             for (int slot = 0; slot < 10; slot++)
@@ -232,7 +267,8 @@ class LCS_EventHandler : EventHandler
                 // LCS_Slot3=BFG9000,
 
                 // This is the list of weapons for the slot
-                String weaponString = CVar.GetCvar("LCS_Slot"..slot, players[ConsolePlayer]).GetString();
+                currentSlot = (slot == 9) ? 0 : slot + 1;
+                String weaponString = CVar.GetCvar("LCS_Slot"..currentSlot, players[ConsolePlayer]).GetString();
                 //Console.printf(weaponString);
 
                 // Here the list is split by comma into the weaponCVars
@@ -240,11 +276,10 @@ class LCS_EventHandler : EventHandler
                 weaponString.Split(weaponCVars, ",");
 
                 // Check if the weapon is in the list
-                if (weaponCVars.Find(currentWeapons[weaponIndex].weapon.GetClassName()) != weaponCVars.Size())
+                if (weaponCVars.Find(currentWeapons[i].weapon.GetClassName()) != weaponCVars.Size())
                 {
-                    //Console.printf("Weapon found!!");
+                    //Console.printf("Weapon "..currentWeapons[i].weapon.GetClassName().." found!!");
                     isSaved = true;
-                    break;
                 }
             }
 
@@ -252,10 +287,11 @@ class LCS_EventHandler : EventHandler
             if (!isSaved)
             {
                 // Read the existing cvar
-                CVar toSave = CVar.GetCvar("LCS_Slot"..currentWeapons[weaponIndex].slot, players[ConsolePlayer]);
+                currentSlot = (currentWeapons[i].slot == 9) ? 0 : currentWeapons[i].slot + 1;
+                CVar toSave = CVar.GetCvar("LCS_Slot"..currentSlot, players[ConsolePlayer]);
 
                 // Override it, appending the new weapon to the end
-                toSave.SetString(""..toSave.GetString()..currentWeapons[weaponIndex].weapon.GetClassName()..",");
+                toSave.SetString(""..toSave.GetString()..currentWeapons[i].weapon.GetClassName()..",");
             }
         }
     }
