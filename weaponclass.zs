@@ -1,4 +1,4 @@
-class LCS_Weapon
+class LSS_Weapon
 {
     // The weapon object itself
     ui Weapon weapon;

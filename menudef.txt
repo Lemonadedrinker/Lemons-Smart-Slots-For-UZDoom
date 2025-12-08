@@ -5,16 +5,39 @@ AddOptionMenu "OptionsMenu"
 
 OptionMenu "SlotsOptions"
 {
-    Title "Lemon's Custom Slots"
-    Control "Edit Slots", "event LCS_Edit"
-    Control "Weapon Slot 1", "event LCS_Switch1"
-    Control "Weapon Slot 2", "event LCS_Switch2"
-    Control "Weapon Slot 3", "event LCS_Switch3"
-    Control "Weapon Slot 4", "event LCS_Switch4"
-    Control "Weapon Slot 5", "event LCS_Switch5"
-    Control "Weapon Slot 6", "event LCS_Switch6"
-    Control "Weapon Slot 7", "event LCS_Switch7"
-    Control "Weapon Slot 8", "event LCS_Switch8"
-    Control "Weapon Slot 9", "event LCS_Switch9"
-    Control "Weapon Slot 0", "event LCS_Switch0"
+    Title "Lemon's Smart Slots"
+    StaticText "Weapon Slot Settings", 1
+    Option "Remember Last Used Weapon per Slot", "LSS_RememberLastWeaponInSlot", "Boolean"
+    StaticText ""
+
+    StaticText "Colors", 1
+    ColorPicker "Weapon Box Border", "LSS_OuterColor"
+    ColorPicker "Weapon Box Fill", "LSS_InnerColor"
+    ColorPicker "Weapon Highlight", "LSS_HighlightColor"
+    ColorPicker "Weapon Held", "LSS_HeldWeaponColor"
+    StaticText ""
+    SafeCommand "Reset Colors to Default", "event LSS_ResetColors", "Are you sure?"
+    StaticText ""
+
+    StaticText "Keybinds", 1
+    Control "Edit Slots", "event LSS_Edit"
+    StaticText ""
+    Control "Weapon Slot 1", "event LSS_Switch1"
+    Control "Weapon Slot 2", "event LSS_Switch2"
+    Control "Weapon Slot 3", "event LSS_Switch3"
+    Control "Weapon Slot 4", "event LSS_Switch4"
+    Control "Weapon Slot 5", "event LSS_Switch5"
+    Control "Weapon Slot 6", "event LSS_Switch6"
+    Control "Weapon Slot 7", "event LSS_Switch7"
+    Control "Weapon Slot 8", "event LSS_Switch8"
+    Control "Weapon Slot 9", "event LSS_Switch9"
+    Control "Weapon Slot 0", "event LSS_Switch0"
+    StaticText ""
+    SafeCommand "Reset Saved Slots", "event LSS_ResetSlots", "Are you sure?"
+}
+
+OptionValue "Boolean"
+{
+    0, "No"
+    1, "Yes"
 }
