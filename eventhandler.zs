@@ -63,7 +63,9 @@ class LSS_EventHandler : EventHandler
         if (event.Name == "LSS_ResetColors")
         {
             CVar.GetCvar("LSS_OuterColor", players[ConsolePlayer]).ResetToDefault();
+            CVar.GetCvar("LSS_OuterColorAlt", players[ConsolePlayer]).ResetToDefault();
             CVar.GetCvar("LSS_InnerColor", players[ConsolePlayer]).ResetToDefault();
+            CVar.GetCvar("LSS_InnerColorAlt", players[ConsolePlayer]).ResetToDefault();
             CVar.GetCvar("LSS_HighlightColor", players[ConsolePlayer]).ResetToDefault();
             CVar.GetCvar("LSS_HeldWeaponColor", players[ConsolePlayer]).ResetToDefault();
         }
