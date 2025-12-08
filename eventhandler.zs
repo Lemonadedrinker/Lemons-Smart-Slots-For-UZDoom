@@ -168,12 +168,26 @@ class LCS_EventHandler : EventHandler
 
             defaultSlot = playerWeapon.SlotNumber;
 
-            // Check if the item is on slots 0-9
-            if ((defaultSlot < 0) || (defaultSlot > 9)) continue;
+            // Vanilla Doom weapons need to be hardcoded because ZDoom does not
+            // automatically assign slots to them (I think)
+            if (playerWeapon.GetClassName() == 'Fist' || playerWeapon.GetClassName() == 'Chainsaw') defaultSlot = 1;
+            else if (playerWeapon.GetClassName() == 'Pistol') defaultSlot = 2;
+            else if (playerWeapon.GetClassName() == 'Shotgun' || playerWeapon.GetClassName() == 'SuperShotgun') defaultSlot = 3;
+            else if (playerWeapon.GetClassName() == 'Chaingun') defaultSlot = 4;
+            else if (playerWeapon.GetClassName() == 'RocketLauncher') defaultSlot = 5;
+            else if (playerWeapon.GetClassName() == 'PlasmaRifle') defaultSlot = 6;
+            else if (playerWeapon.GetClassName() == 'BFG9000') defaultSlot = 7;
+            //else if (playerWeapon.GetClassName() == 'ID24Incinerator') defaultSlot = 8;
+            //else if (playerWeapon.GetClassName() == 'ID24CalamityBlade') defaultSlot = 9;
+
+            //Console.printf(" Weapon "..playerWeapon.GetClassName().." with defaultSlot: %i", defaultSlot);
+
+            if (defaultSlot == -1) continue;
             
             // Weapon found!!
             let newWeapon = new('LCS_Weapon');
             newWeapon.weapon = playerWeapon;
+            newWeapon.slot = defaultSlot;
 
             tempWeaponArray.Push(newWeapon);
             //Console.printf(" HAVE: " .. newWeapon.weapon.GetClassName() .. " in slot #" .. defaultSlot .. " and priority: " .. priority);
@@ -228,23 +242,11 @@ class LCS_EventHandler : EventHandler
         {
             tempWeapon = tempWeaponArray[i];
             
-            // Vanilla Doom weapons need to be hardcoded because ZDoom does not
-            // automatically assign slots to them (I think)
-            if (tempWeapon.GetClassName() == 'Fist' || tempWeapon.GetClassName() == 'Chainsaw') tempWeapon.row = 0;
-            else if (tempWeapon.GetClassName() == 'Pistol') tempWeapon.row = 1;
-            else if (tempWeapon.GetClassName() == 'Shotgun' || tempWeapon.GetClassName() == 'SuperShotgun') tempWeapon.row = 2;
-            else if (tempWeapon.GetClassName() == 'Chaingun') tempWeapon.row = 3;
-            else if (tempWeapon.GetClassName() == 'RocketLauncher') tempWeapon.row = 4;
-            else if (tempWeapon.GetClassName() == 'PlasmaRifle') tempWeapon.row = 5;
-            else if (tempWeapon.GetClassName() == 'BFG9000') tempWeapon.row = 6;
-            else
-            {
-                int storedSlot = (tempWeapon.weapon.SlotNumber != 0) ? tempWeapon.weapon.SlotNumber - 1 : 9;
-                tempWeapon.slot = storedSlot;
-            }
+            int storedSlot = (tempWeapon.slot != 0) ? tempWeapon.slot - 1 : 9;
+            tempWeapon.slot = storedSlot;
 
-            tempWeapon.row = row[tempWeapon.weapon.SlotNumber];
-            row[tempWeapon.weapon.SlotNumber]++;
+            tempWeapon.row = row[tempWeapon.slot];
+            row[tempWeapon.slot]++;
 
             //Console.printf(" Temp weapon2: "..tempWeapon.weapon.GetClassName());
 
