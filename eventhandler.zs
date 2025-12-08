@@ -1,7 +1,7 @@
-class LCS_EventHandler : EventHandler
+class LSS_EventHandler : EventHandler
 {
     ui bool isEditing;
-    ui Array<LCS_Weapon> currentWeapons;
+    ui Array<LSS_Weapon> currentWeapons;
     ui Vector2 MousePosition;
 
     ui bool mouseClicked;
@@ -11,8 +11,6 @@ class LCS_EventHandler : EventHandler
 
     ui bool keyDown;
 
-    ui bool needsWeaponUpdate;
-
     /**
     * Processes keybinds
     */
@@ -21,7 +19,7 @@ class LCS_EventHandler : EventHandler
         if(players[Consoleplayer].mo == null) return;
 
         // Player switches weapons
-        if (event.Name.Left(10) == "LCS_Switch")
+        if (event.Name.Left(10) == "LSS_Switch")
         {
             // Trim the digit, convert that to an int
             String digitString = event.Name;
@@ -36,7 +34,7 @@ class LCS_EventHandler : EventHandler
         }
         
         // Player tries to edit
-        if (event.Name == "LCS_Edit")
+        if (event.Name == "LSS_Edit")
         {
             UpdateCurrentWeaponsArray();
             SaveCurrentWeaponsToDisk();
@@ -47,18 +45,38 @@ class LCS_EventHandler : EventHandler
                 slotSelected = (-1, -1);
                 hasSlotSelected = false;
                 selectedWeaponString = "";
-                SendNetworkEvent("LCS_Editing");
+                SendNetworkEvent("LSS_Editing");
             }
             else
             {
-                SendNetworkEvent("LCS_NotEditing");
+                SendNetworkEvent("LSS_NotEditing");
             }
 
             // Debugging
             //int randomWeaponIndex = crandom(0, currentWeapons.Size() - 1);
             //String randomWeaponName = currentWeapons[randomWeaponIndex].GetClassName();
 
-            //SendNetworkEvent("LCS_WeaponSwitchTo" .. randomWeaponName);
+            //SendNetworkEvent("LSS_WeaponSwitchTo" .. randomWeaponName);
+        }
+
+        // Reset colors
+        if (event.Name == "LSS_ResetColors")
+        {
+            CVar.GetCvar("LSS_OuterColor", players[ConsolePlayer]).ResetToDefault();
+            CVar.GetCvar("LSS_InnerColor", players[ConsolePlayer]).ResetToDefault();
+            CVar.GetCvar("LSS_HighlightColor", players[ConsolePlayer]).ResetToDefault();
+            CVar.GetCvar("LSS_HeldWeaponColor", players[ConsolePlayer]).ResetToDefault();
+        }
+
+        // Reset slots
+        if (event.Name == "LSS_ResetSlots")
+        {
+            CVar slotCVar;
+            for (int i = 0; i < 10; i++)
+            {
+                slotCVar = CVar.GetCvar("LSS_Slot"..i, players[ConsolePlayer]);
+                slotCvar.ResetToDefault();
+            }
         }
     }
 
@@ -75,7 +93,7 @@ class LCS_EventHandler : EventHandler
             hasSlotSelected = false;
             selectedWeaponString = "";
 
-            SendNetworkEvent("LCS_NotEditing");
+            SendNetworkEvent("LSS_NotEditing");
         }
 
         // Getting mouse inputs
@@ -124,7 +142,7 @@ class LCS_EventHandler : EventHandler
         if(players[event.Player].mo == null) return;
         Let player = players[event.Player];
 
-        if (event.Name.Left(18) == "LCS_WeaponSwitchTo")
+        if (event.Name.Left(18) == "LSS_WeaponSwitchTo")
         {
             String weaponName = event.Name;
             weaponName.Remove(0, 18);
@@ -135,12 +153,12 @@ class LCS_EventHandler : EventHandler
 
         // *Need* to only enable the UI for the player that started editing
         // Should be safe for multiplayer
-        else if (event.Name == "LCS_Editing" && player == players[ConsolePlayer])
+        else if (event.Name == "LSS_Editing" && player == players[ConsolePlayer])
         {
             self.IsUiProcessor = true;
             self.RequireMouse = true;
         }
-        else if (event.Name == "LCS_NotEditing" && player == players[ConsolePlayer])
+        else if (event.Name == "LSS_NotEditing" && player == players[ConsolePlayer])
         {
             self.IsUiProcessor = false;
             self.RequireMouse = false;
@@ -153,7 +171,7 @@ class LCS_EventHandler : EventHandler
     ui void UpdateCurrentWeaponsArray()
     {
         Let player = players[Consoleplayer];
-        Array<LCS_Weapon> tempWeaponArray;
+        Array<LSS_Weapon> tempWeaponArray;
         int defaultSlot = -1;
         int priority;
         // GZDoom's inventory can be parsed through as a linked list, where
@@ -185,7 +203,7 @@ class LCS_EventHandler : EventHandler
             if (defaultSlot == -1) continue;
             
             // Weapon found!!
-            let newWeapon = new('LCS_Weapon');
+            let newWeapon = new('LSS_Weapon');
             newWeapon.weapon = playerWeapon;
             newWeapon.slot = defaultSlot;
 
@@ -196,14 +214,14 @@ class LCS_EventHandler : EventHandler
         // Now we parse through the CVars to precompute the slots and priorities
         currentWeapons.Clear();
         int row[10];
-        LCS_Weapon tempWeapon;
+        LSS_Weapon tempWeapon;
 
         for (int slot = 0; slot < 10; slot++)
         {
             int currentSlot = (slot == 9) ? 0 : slot + 1;
 
             // This is the list of weapons for the slot
-            String savedWeaponString = CVar.GetCvar("LCS_Slot"..currentSlot, players[ConsolePlayer]).GetString();
+            String savedWeaponString = CVar.GetCvar("LSS_Slot"..currentSlot, players[ConsolePlayer]).GetString();
             //Console.printf(savedWeaponString);
 
             // Here the list is split by comma into the weaponList
@@ -275,12 +293,12 @@ class LCS_EventHandler : EventHandler
             for (int slot = 0; slot < 10; slot++)
             {
                 // The slots are saved as follows:
-                // LCS_Slot2=Pistol,Shotgun,Chaingun,
-                // LCS_Slot3=BFG9000,
+                // LSS_Slot2=Pistol,Shotgun,Chaingun,
+                // LSS_Slot3=BFG9000,
 
                 // This is the list of weapons for the slot
                 currentSlot = (slot == 9) ? 0 : slot + 1;
-                String weaponString = CVar.GetCvar("LCS_Slot"..currentSlot, players[ConsolePlayer]).GetString();
+                String weaponString = CVar.GetCvar("LSS_Slot"..currentSlot, players[ConsolePlayer]).GetString();
                 //Console.printf(weaponString);
 
                 // Here the list is split by comma into the weaponCVars
@@ -300,7 +318,7 @@ class LCS_EventHandler : EventHandler
             {
                 // Read the existing cvar
                 currentSlot = (currentWeapons[i].slot == 9) ? 0 : currentWeapons[i].slot + 1;
-                CVar toSave = CVar.GetCvar("LCS_Slot"..currentSlot, players[ConsolePlayer]);
+                CVar toSave = CVar.GetCvar("LSS_Slot"..currentSlot, players[ConsolePlayer]);
 
                 // Override it, appending the new weapon to the end
                 toSave.SetString(""..toSave.GetString()..currentWeapons[i].weapon.GetClassName()..",");
@@ -318,7 +336,7 @@ class LCS_EventHandler : EventHandler
         Weapon heldWeapon = players[Consoleplayer].ReadyWeapon;
 
         // This is the list of weapons for the slot
-        String weaponString = CVar.GetCvar("LCS_Slot"..slot, players[ConsolePlayer]).GetString();
+        String weaponString = CVar.GetCvar("LSS_Slot"..slot, players[ConsolePlayer]).GetString();
 
         // Here the list is split by comma into the weaponCVars
         Array<String> weaponCVars;
@@ -363,14 +381,31 @@ class LCS_EventHandler : EventHandler
             // so grab the first weapon
             if (weaponIndex == currentWeaponsInSlot.Size()) weaponIndex = 0;
 
+            // If LSS_RememberLastWeaponInSlot = true, then
+            // move the current weapon in the CVar to the end
+            if (LSS_RememberLastWeaponInSlot)
+            {
+                CVar slotCVar = CVar.GetCVar("LSS_Slot"..slot, players[ConsolePlayer]);
+                int slotCVarIndex = slotCVar.GetString().IndexOf(heldWeapon.GetClassName());
+                String heldWeaponString = heldWeapon.GetClassName();
+                slotCVar.SetString(
+                    slotCVar.GetString().Left(slotCVarIndex)..
+                    slotCVar.GetString().Mid(slotCVarIndex + heldWeaponString.Length() + 1)..
+                    heldWeapon.GetClassName()..","
+                );
+
+                UpdateCurrentWeaponsArray();
+                SaveCurrentWeaponsToDisk();
+            }
+
             // Finally switch weapons
-            SendNetworkEvent("LCS_WeaponSwitchTo"..currentWeaponsInSlot[weaponIndex]);
+            SendNetworkEvent("LSS_WeaponSwitchTo"..currentWeaponsInSlot[weaponIndex]);
         }
         // If not, then switch to the first weapon in the new slot
         else
         {
             //Console.printf(currentWeaponsInSlot[0]);
-            SendNetworkEvent("LCS_WeaponSwitchTo"..currentWeaponsInSlot[0]);
+            SendNetworkEvent("LSS_WeaponSwitchTo"..currentWeaponsInSlot[0]);
         }
     }
 }

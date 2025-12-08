@@ -1,15 +1,14 @@
-extend class LCS_EventHandler
+extend class LSS_EventHandler
 {
     ui Vector2 HudScale;
 
-    ui float alphaValue;
+    ui Vector2 mouseSlot;
+
     ui Color outerColor;
-    ui Color transOuterColor;
     ui Color innerColor;
     ui Color highlightColor;
     ui Color heldWeaponColor;
-
-    ui Vector2 mouseSlot;
+    ui float ghostAlphaValue;
 
     ui int scalingFactor;
     ui int boxWidth;
@@ -24,14 +23,6 @@ extend class LCS_EventHandler
             return;
         }
 
-        alphaValue = 0.4;
-
-        outerColor = Color(35, 32, 33);
-        innerColor = Color(97, 90, 92);
-        
-        highlightColor = Color(191, 177, 182);
-        heldWeaponColor = Color(157, 142, 148);
-
         int a, b, screenWidth, d; 
         [a, b, screenWidth, d] = Screen.GetViewWindow();
         scalingFactor = screenWidth / 480;
@@ -39,6 +30,18 @@ extend class LCS_EventHandler
         boxWidth = 48 * scalingFactor;
         boxHeight = 40 * scalingFactor;
         bevel = 1 * scalingFactor;
+
+        // Color stuff
+        Color temp;
+        temp = LSS_OuterColor;
+        outerColor = color(temp.b, temp.g, temp.r);
+        temp = LSS_InnerColor;
+        innerColor = color(temp.b, temp.g, temp.r);
+        temp = LSS_HighlightColor;
+        highlightColor = color(temp.b, temp.g, temp.r);
+        temp = LSS_HeldWeaponColor;
+        heldWeaponColor = color(temp.b, temp.g, temp.r);
+        ghostAlphaValue = LSS_GhostAlphaValue;
         fontColor = Font.CR_RED;
 
         HudScale = StatusBar.GetHUDScale();
@@ -68,20 +71,20 @@ extend class LCS_EventHandler
         DrawWeaponBoxes();
     }
 
-    private ui void DrawBox(Vector2 origin, int width, int height, int bevel, Color color1, Color color2, float alphaValue)
+    private ui void DrawBox(Vector2 origin, int width, int height, int bevel, Color color1, Color color2, float ghostAlphaValue)
     {
         // Outer square
-        DrawSquare(origin, width, height, color1, alphaValue);
+        DrawSquare(origin, width, height, color1, ghostAlphaValue);
 
         // Inner one, needs an offset
         Vector2 innerOffset = (origin.X, origin.Y);
 
-        DrawSquare(innerOffset, width - 4 * bevel, height - 4 * bevel, color2, alphaValue);
+        DrawSquare(innerOffset, width - 4 * bevel, height - 4 * bevel, color2, ghostAlphaValue);
     }
 
     // Code copied from example at
     // https://zdoom.org/wiki/Classes:Shape2D
-    private ui void DrawSquare(Vector2 origin, int width, int height, Color squareColor, float alphaValue)
+    private ui void DrawSquare(Vector2 origin, int width, int height, Color squareColor, float ghostAlphaValue)
     {
         // Create our square
         let square = new("Shape2D");
@@ -116,7 +119,7 @@ extend class LCS_EventHandler
         // Apply the transformation to our square
         square.SetTransform(transformation);
 
-        Screen.DrawShapeFill(squareColor, alphaValue, square);
+        Screen.DrawShapeFill(squareColor, ghostAlphaValue, square);
     }
 
     private ui void DrawFrame()
@@ -171,7 +174,7 @@ extend class LCS_EventHandler
     private ui void DrawWeaponBoxes()
     {
         // Draw the selected weapon last so it's on top
-        LCS_Weapon selectedWeaponObject;
+        LSS_Weapon selectedWeaponObject;
 
         // Used to calculate where to clamp the ghost
         int slotRowCount[10];
@@ -181,7 +184,7 @@ extend class LCS_EventHandler
 
         for (int i = 0; i < currentWeapons.Size(); i++)
         {
-            LCS_Weapon currentWeapon = currentWeapons[i];
+            LSS_Weapon currentWeapon = currentWeapons[i];
 
             int rowOffset = 0;
             slotRowCount[currentWeapon.slot]++;
@@ -282,14 +285,14 @@ extend class LCS_EventHandler
             }
 
             // Draw ghost
-            if (validGhost) DrawWeaponBox(ghostX, ghostY, selectedWeaponObject, color1, color2, alphaValue);
+            if (validGhost) DrawWeaponBox(ghostX, ghostY, selectedWeaponObject, color1, color2, ghostAlphaValue);
 
             // Draw the weapon on the cursor if there is one
             DrawWeaponBoxOnCursor(selectedWeaponObject, color1, color2);
         }
     }
 
-    private ui void DrawWeaponBox(int slot, int row, LCS_Weapon currentWeapon, Color color1, Color color2, float alphaValue = 1.0)
+    private ui void DrawWeaponBox(int slot, int row, LSS_Weapon currentWeapon, Color color1, Color color2, float ghostAlphaValue = 1.0)
     {
         // Draw the box first,
         // then draw the weapon sprite,
@@ -302,7 +305,7 @@ extend class LCS_EventHandler
             bevel,
             color1,
             color2,
-            alphaValue
+            ghostAlphaValue
         );
 
         Screen.DrawTexture(
@@ -310,7 +313,7 @@ extend class LCS_EventHandler
             true,
             (boxWidth * slot) + (boxWidth / 2),
             (boxHeight * (row + 1) + (boxHeight / 6)),
-            DTA_Alpha, alphaValue,
+            DTA_Alpha, ghostAlphaValue,
             DTA_ScaleX, scalingFactor * 1,
             DTA_ScaleY, scalingFactor * 1
         );
@@ -321,14 +324,14 @@ extend class LCS_EventHandler
             slot * boxWidth + 2 * bevel, 
             (row + 1.3) * boxHeight, 
             currentWeapon.weapon.GetClassName(),
-            DTA_Alpha, alphaValue,
+            DTA_Alpha, ghostAlphaValue,
             DTA_ScaleX, scalingFactor / 2,
             DTA_ScaleY, scalingFactor / 2,
             DTA_TextLen, 11
         );
     }
 
-    private ui void DrawWeaponBoxOnCursor(LCS_Weapon currentWeapon, Color color1, Color color2, float alphaValue = 1.0)
+    private ui void DrawWeaponBoxOnCursor(LSS_Weapon currentWeapon, Color color1, Color color2, float ghostAlphaValue = 1.0)
     {
         // Draw the box first,
         // then draw the weapon sprite,
@@ -341,7 +344,7 @@ extend class LCS_EventHandler
             bevel,
             color1,
             color2,
-            alphaValue
+            ghostAlphaValue
         );
 
         Screen.DrawTexture(
@@ -373,7 +376,7 @@ extend class LCS_EventHandler
         int oldCurrentSlot = (slotNumber == 9) ? 0 : slotNumber + 1;
 
         // This is the list of weapons for the slots
-        CVar oldCVar = CVar.GetCvar("LCS_Slot"..oldCurrentSlot, players[ConsolePlayer]);
+        CVar oldCVar = CVar.GetCvar("LSS_Slot"..oldCurrentSlot, players[ConsolePlayer]);
 
         // Here the list is split by comma into the weaponCVars
         Array<String> oldSlotWeaponCVars;
@@ -442,8 +445,8 @@ extend class LCS_EventHandler
         //Console.printf(" oldslot: %i, newslot: %i", oldCurrentSlot, newCurrentSlot);
 
         // This is the list of weapons for the slots
-        CVar oldCVar = CVar.GetCvar("LCS_Slot"..oldCurrentSlot, players[ConsolePlayer]);
-        CVar newCVar = CVar.GetCvar("LCS_Slot"..newcurrentSlot, players[ConsolePlayer]);
+        CVar oldCVar = CVar.GetCvar("LSS_Slot"..oldCurrentSlot, players[ConsolePlayer]);
+        CVar newCVar = CVar.GetCvar("LSS_Slot"..newcurrentSlot, players[ConsolePlayer]);
 
         // Here the list is split by comma into the weaponCVars
         Array<String> oldSlotWeaponCVars;

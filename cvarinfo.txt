@@ -1,10 +1,18 @@
-nosave user String LCS_Slot1;
-nosave user String LCS_Slot2;
-nosave user String LCS_Slot3;
-nosave user String LCS_Slot4;
-nosave user String LCS_Slot5;
-nosave user String LCS_Slot6;
-nosave user String LCS_Slot7;
-nosave user String LCS_Slot8;
-nosave user String LCS_Slot9;
-nosave user String LCS_Slot0;
+nosave user Color LSS_OuterColor = "21 20 23";
+nosave user Color LSS_InnerColor = "61 5A 5C";
+nosave user Color LSS_HighlightColor = "B6 B1 BF";
+nosave user Color LSS_HeldWeaponColor = "9D 8E 94";
+nosave user float LSS_GhostAlphaValue = 0.4;
+
+nosave user bool LSS_RememberLastWeaponInSlot = false;
+
+nosave user String LSS_Slot1;
+nosave user String LSS_Slot2;
+nosave user String LSS_Slot3;
+nosave user String LSS_Slot4;
+nosave user String LSS_Slot5;
+nosave user String LSS_Slot6;
+nosave user String LSS_Slot7;
+nosave user String LSS_Slot8;
+nosave user String LSS_Slot9;
+nosave user String LSS_Slot0;
