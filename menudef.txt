@@ -8,15 +8,23 @@ OptionMenu "SlotsOptions"
     Title "Lemon's Smart Slots"
     StaticText "Weapon Slot Settings", 1
     Option "Remember Last Used Weapon per Slot", "LSS_RememberLastWeaponInSlot", "Boolean"
+    Slider "Ghost Alpha", "LSS_GhostAlphaValue", 0, 1, 0.05, 2
+    Slider "Cursor Offset", "LSS_CursorOffset", 0, 2, 0.05, 2
     StaticText ""
 
     StaticText "Colors", 1
-    ColorPicker "Weapon Box Border", "LSS_OuterColor"
-    ColorPicker "Weapon Box Fill", "LSS_InnerColor"
+    Option "Preset", "LSS_ColorPreset", "ColorPresets"
+    SafeCommand "Set Preset", "event LSS_SetPreset", "Are you sure? This will overwrite the current colors."
+    StaticText ""
+    Option "Slot Number Color", "LSS_SlotNumberColor", "FontColors"
+    Option "Weapon Name Color", "LSS_WeaponNameColor", "FontColors"
     ColorPicker "Weapon Highlight", "LSS_HighlightColor"
     ColorPicker "Weapon Held", "LSS_HeldWeaponColor"
-    StaticText ""
-    SafeCommand "Reset Colors to Default", "event LSS_ResetColors", "Are you sure?"
+    Option "Using Alternating Colors", "LSS_UsingAlternatingColors", "Boolean"
+    ColorPicker "Weapon Box Border", "LSS_OuterColor"
+    ColorPicker "Weapon Box Border Alternate", "LSS_OuterColorAlt", "LSS_UsingAlternatingColors"
+    ColorPicker "Weapon Box Fill", "LSS_InnerColor"
+    ColorPicker "Weapon Box Fill Alternate", "LSS_InnerColorAlt", "LSS_UsingAlternatingColors"
     StaticText ""
 
     StaticText "Keybinds", 1
@@ -34,6 +42,42 @@ OptionMenu "SlotsOptions"
     Control "Weapon Slot 0", "event LSS_Switch0"
     StaticText ""
     SafeCommand "Reset Saved Slots", "event LSS_ResetSlots", "Are you sure?"
+}
+
+OptionValue "ColorPresets"
+{
+    0, "Default"
+    1, "Trans Flag"
+}
+
+OptionValue "FontColors"
+{
+    0, "\caReddish Brick"
+    1, "\cbTan"
+    2, "\ccGray"
+    3, "\cdGreen"
+    4, "\ceBrown"
+    5, "\cfGold"
+    6, "\cgRed"
+    7, "\chBlue"
+    8, "\ciOrange"
+    9, "\cjWhite"
+    10, "\ckYellow"
+    11, "\clDefault"
+    12, "\cmBlack"
+    13, "\cnLight Blue"
+    14, "\coCream"
+    15, "\cpOlive"
+    16, "\cqDark Green"
+    17, "\crDark Red"
+    18, "\csDark Brown"
+    19, "\ctPurple"
+    20, "\cuDark Gray"
+    21, "\cvCyan"
+    22, "\cwIce"
+    23, "\cxFire"
+    24, "\cySapphire"
+    25, "\czTeal"
 }
 
 OptionValue "Boolean"

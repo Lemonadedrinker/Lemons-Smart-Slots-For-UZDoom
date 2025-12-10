@@ -5,7 +5,9 @@ extend class LSS_EventHandler
     ui Vector2 mouseSlot;
 
     ui Color outerColor;
+    ui Color outerColorAlt;
     ui Color innerColor;
+    ui Color innerColorAlt;
     ui Color highlightColor;
     ui Color heldWeaponColor;
     ui float ghostAlphaValue;
@@ -14,7 +16,8 @@ extend class LSS_EventHandler
     ui int boxWidth;
     ui int boxHeight;
     ui int bevel;
-    ui int fontColor;
+    ui int slotNumberColor;
+    ui int weaponNameColor;
 
     override void RenderOverlay(RenderEvent event)
     {
@@ -42,7 +45,15 @@ extend class LSS_EventHandler
         temp = LSS_HeldWeaponColor;
         heldWeaponColor = color(temp.b, temp.g, temp.r);
         ghostAlphaValue = LSS_GhostAlphaValue;
-        fontColor = Font.CR_RED;
+        slotNumberColor = LSS_SlotNumberColor;
+        weaponNameColor = LSS_WeaponNameColor;
+
+        // Setting the alternating colors
+        temp = (LSS_UsingAlternatingColors) ? LSS_OuterColorAlt : LSS_OuterColor;
+        outerColorAlt = color(temp.b, temp.g, temp.r);
+        temp = (LSS_UsingAlternatingColors) ? LSS_InnerColorAlt : LSS_InnerColor;
+        innerColorAlt = color(temp.b, temp.g, temp.r);
+        temp = LSS_HighlightColor;
 
         HudScale = StatusBar.GetHUDScale();
         //Screen.DrawThickLine(MousePosition.X, MousePosition.Y, 10, 10, HudScale.X, Color(255, 0, 255));
@@ -124,17 +135,24 @@ extend class LSS_EventHandler
 
     private ui void DrawFrame()
     {
+        Color color1;
+        Color color2;
+
         for (int i = 0; i < 10; i++)
         {
+            // Alternating colors
+            color1 = (i % 2 == 0) ? outerColor : outerColorAlt;
+            color2 = (i % 2 == 0) ? innerColor : innerColorAlt;
+
             // Draw each box for the numbers
-            DrawBox((i * boxWidth + (boxWidth / 2), boxHeight / 4), boxWidth, boxHeight / 2, bevel, outerColor, innerColor, 1.0);
+            DrawBox((i * boxWidth + (boxWidth / 2), boxHeight / 4), boxWidth, boxHeight / 2, bevel, color1, color2, 1.0);
 
             // Digits are 1-9 and 0
             int digit = (i == 9) ? 0 : i + 1;
 
             Screen.DrawText(
                 OriginalSmallFont, 
-                fontColor, 
+                slotNumberColor, 
                 i * boxWidth + (boxWidth / 2) - scalingFactor * 8, 
                 boxHeight / 4 - scalingFactor * 7, 
                 ""..(digit),
@@ -189,8 +207,9 @@ extend class LSS_EventHandler
             int rowOffset = 0;
             slotRowCount[currentWeapon.slot]++;
 
-            color1 = outerColor;
-            color2 = innerColor;
+            // Alternating colors
+            color1 = (currentWeapon.slot % 2 == 0) ? outerColor : outerColorAlt;
+            color2 = (currentWeapon.slot % 2 == 0) ? innerColor : innerColorAlt;
 
             // This is the slot that has been clicked on
             if (slotSelected == (currentWeapon.slot, currentWeapon.row))
@@ -275,8 +294,9 @@ extend class LSS_EventHandler
             }
 
             // Color the ghost and cursor weapon
-            color1 = outerColor;
-            color2 = highlightColor;
+            // Alternating colors
+            color1 = (ghostX % 2 == 0) ? outerColor : outerColorAlt;
+            color2 = (ghostX % 2 == 0) ? innerColor : innerColorAlt;
 
             // Border if weapon is held
             if (players[Consoleplayer].ReadyWeapon.GetClassName() == selectedWeaponObject.weapon.GetClassName())
@@ -288,7 +308,7 @@ extend class LSS_EventHandler
             if (validGhost) DrawWeaponBox(ghostX, ghostY, selectedWeaponObject, color1, color2, ghostAlphaValue);
 
             // Draw the weapon on the cursor if there is one
-            DrawWeaponBoxOnCursor(selectedWeaponObject, color1, color2);
+            DrawWeaponBoxOnCursor(selectedWeaponObject, color1, highlightColor);
         }
     }
 
@@ -320,7 +340,7 @@ extend class LSS_EventHandler
 
         Screen.DrawText(
             OriginalSmallFont, 
-            fontColor, 
+            weaponNameColor, 
             slot * boxWidth + 2 * bevel, 
             (row + 1.3) * boxHeight, 
             currentWeapon.weapon.GetClassName(),
@@ -333,12 +353,15 @@ extend class LSS_EventHandler
 
     private ui void DrawWeaponBoxOnCursor(LSS_Weapon currentWeapon, Color color1, Color color2, float ghostAlphaValue = 1.0)
     {
+        // Offset from cursor
+        Vector2 offset = (boxWidth / 2, boxHeight / 2) * LSS_CursorOffset;
+
         // Draw the box first,
         // then draw the weapon sprite,
         // finally, draw the text over the sprite
         DrawBox(
-            (MousePosition.X,
-            MousePosition.Y),
+            (MousePosition.X + offset.X,
+            MousePosition.Y + offset.Y),
             boxWidth,
             boxHeight,
             bevel,
@@ -350,17 +373,17 @@ extend class LSS_EventHandler
         Screen.DrawTexture(
             currentWeapon.weapon.FindState("Spawn", true).GetSpriteTexture(0, 0, (0, 0)),
             true,
-            MousePosition.X,
-            MousePosition.Y + (boxHeight / 6),
+            MousePosition.X + offset.X,
+            MousePosition.Y + (boxHeight / 6) + offset.Y,
             DTA_ScaleX, scalingFactor * 1,
             DTA_ScaleY, scalingFactor * 1
         );
 
         Screen.DrawText(
             OriginalSmallFont, 
-            fontColor, 
-            MousePosition.X - (boxWidth / 2) + (2 * bevel), 
-            MousePosition.Y + (.3) * boxHeight, 
+            weaponNameColor, 
+            MousePosition.X - (boxWidth / 2) + (2 * bevel) + offset.X, 
+            MousePosition.Y + (.3) * boxHeight + offset.Y, 
             currentWeapon.weapon.GetClassName(),
             DTA_ScaleX, scalingFactor / 2,
             DTA_ScaleY, scalingFactor / 2,

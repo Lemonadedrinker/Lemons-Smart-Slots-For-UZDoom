@@ -59,13 +59,10 @@ class LSS_EventHandler : EventHandler
             //SendNetworkEvent("LSS_WeaponSwitchTo" .. randomWeaponName);
         }
 
-        // Reset colors
-        if (event.Name == "LSS_ResetColors")
+        // Set Color Preset
+        if (event.Name == "LSS_SetPreset")
         {
-            CVar.GetCvar("LSS_OuterColor", players[ConsolePlayer]).ResetToDefault();
-            CVar.GetCvar("LSS_InnerColor", players[ConsolePlayer]).ResetToDefault();
-            CVar.GetCvar("LSS_HighlightColor", players[ConsolePlayer]).ResetToDefault();
-            CVar.GetCvar("LSS_HeldWeaponColor", players[ConsolePlayer]).ResetToDefault();
+            SetColorPreset();
         }
 
         // Reset slots
@@ -406,6 +403,43 @@ class LSS_EventHandler : EventHandler
         {
             //Console.printf(currentWeaponsInSlot[0]);
             SendNetworkEvent("LSS_WeaponSwitchTo"..currentWeaponsInSlot[0]);
+        }
+    }
+
+    ui void SetColorPreset()
+    {
+        CVar slotNumberColor = CVar.GetCvar("LSS_SlotNumberColor", players[ConsolePlayer]);
+        CVar weaponNameColor = CVar.GetCvar("LSS_WeaponNameColor", players[ConsolePlayer]);
+        CVar outerColor = CVar.GetCvar("LSS_OuterColor", players[ConsolePlayer]);
+        CVar outerColorAlt = CVar.GetCvar("LSS_OuterColorAlt", players[ConsolePlayer]);
+        CVar innerColor = CVar.GetCvar("LSS_InnerColor", players[ConsolePlayer]);
+        CVar innerColorAlt = CVar.GetCvar("LSS_InnerColorAlt", players[ConsolePlayer]);
+        CVar highlightColor = CVar.GetCvar("LSS_HighlightColor", players[ConsolePlayer]);
+        CVar heldWeaponColor = CVar.GetCvar("LSS_HeldWeaponColor", players[ConsolePlayer]);
+
+        // Default
+        if (LSS_ColorPreset == 0)
+        {
+            slotNumberColor.ResetToDefault();
+            weaponNameColor.ResetToDefault();
+            outerColor.ResetToDefault();
+            outerColorAlt.ResetToDefault();
+            innerColor.ResetToDefault();
+            innerColorAlt.ResetToDefault();
+            highlightColor.ResetToDefault();
+            heldWeaponColor.ResetToDefault();
+        }
+        // Trans Flag
+        else if (LSS_ColorPreset == 1)
+        {
+            slotNumberColor.SetInt(9);
+            weaponNameColor.SetInt(9);
+            outerColor.SetString("00 1b 33");
+            outerColorAlt.SetString("33 00 1f");
+            innerColor.SetString("5b ce fa");
+            innerColorAlt.SetString("f5 a9 b8");
+            highlightColor.SetString("ff ff ff");
+            heldWeaponColor.SetString("ff ff ff");
         }
     }
 }
