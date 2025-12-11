@@ -452,8 +452,30 @@ class LSS_EventHandler : EventHandler
             highlightColor.ResetToDefault();
             heldWeaponColor.ResetToDefault();
         }
-        // Trans Flag
         else if (LSS_ColorPreset == 1)
+        {
+            slotNumberColor.SetInt(9);
+            weaponNameColor.SetInt(2);
+            outerColor.SetString("ad c7 e7");
+            outerColorAlt.SetString("dd c9 af");
+            innerColor.SetString("e4 ef ff");
+            innerColorAlt.SetString("ff e0 d3");
+            highlightColor.SetString("ff ff ff");
+            heldWeaponColor.SetString("8b 8b 8b");
+        }
+        else if (LSS_ColorPreset == 2)
+        {
+            slotNumberColor.SetInt(12);
+            weaponNameColor.SetInt(20);
+            outerColor.SetString("15 1b 23");
+            outerColorAlt.SetString("1b 1b 1b");
+            innerColor.SetString("07 13 1c");
+            innerColorAlt.SetString("0b 0b 0b");
+            highlightColor.SetString("3b 3b 3b");
+            heldWeaponColor.SetString("27 27 27");
+        }
+        // Trans Flag
+        else if (LSS_ColorPreset == 3)
         {
             slotNumberColor.SetInt(9);
             weaponNameColor.SetInt(9);
@@ -461,6 +483,17 @@ class LSS_EventHandler : EventHandler
             outerColorAlt.SetString("33 00 1f");
             innerColor.SetString("5b ce fa");
             innerColorAlt.SetString("f5 a9 b8");
+            highlightColor.SetString("ff ff ff");
+            heldWeaponColor.SetString("ff ff ff");
+        }
+        else if (LSS_ColorPreset == 4)
+        {
+            slotNumberColor.SetInt(9);
+            weaponNameColor.SetInt(9);
+            outerColor.SetString("2c 2c 2c");
+            outerColorAlt.SetString("2c 2c 2c");
+            innerColor.SetString("fc f4 34");
+            innerColorAlt.SetString("9c 58 d1");
             highlightColor.SetString("ff ff ff");
             heldWeaponColor.SetString("ff ff ff");
         }

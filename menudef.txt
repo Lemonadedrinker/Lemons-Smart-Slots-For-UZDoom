@@ -53,7 +53,10 @@ OptionMenu "SlotsOptions"
 OptionValue "ColorPresets"
 {
     0, "Default"
-    1, "Trans Flag"
+    1, "Light Mode"
+    2, "Dark Mode"
+    3, "Trans Flag"
+    4, "Non-binary Flag"
 }
 
 OptionValue "FontColors"
