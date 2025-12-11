@@ -1,0 +1,3 @@
+LSS_SelectSound = "sounds/select.ogg"
+LSS_SwapSound = "sounds/swap.ogg"
+LSS_InvalidSound = "sounds/invalid.ogg"

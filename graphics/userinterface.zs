@@ -11,6 +11,7 @@ extend class LSS_EventHandler
     ui Color highlightColor;
     ui Color heldWeaponColor;
     ui float ghostAlphaValue;
+    ui float swapAlphaValue;
 
     ui int scalingFactor;
     ui int boxWidth;
@@ -18,6 +19,8 @@ extend class LSS_EventHandler
     ui int bevel;
     ui int slotNumberColor;
     ui int weaponNameColor;
+
+    ui bool tryingToSwap;
 
     override void RenderOverlay(RenderEvent event)
     {
@@ -45,6 +48,7 @@ extend class LSS_EventHandler
         temp = LSS_HeldWeaponColor;
         heldWeaponColor = color(temp.b, temp.g, temp.r);
         ghostAlphaValue = LSS_GhostAlphaValue;
+        swapAlphaValue = LSS_SwapAlphaValue;
         slotNumberColor = LSS_SlotNumberColor;
         weaponNameColor = LSS_WeaponNameColor;
 
@@ -65,20 +69,66 @@ extend class LSS_EventHandler
         // Calculate which slot should have been clicked on
         mouseSlot = CalculateSlotUnderMouse();
 
+        // Insertion
         // Need to alternate
         if (mouseClicked) 
         {
             mouseClicked = false;
+            mouseReleased = false;
             // Calculate if it was a valid click
-            if (!hasSlotSelected) CalculateMouseClick(mouseSlot.X, mouseSlot.Y);
-            
+            if (!hasSlotSelected)
+            {
+                tryingToSwap = true;
+                CalculateMouseClick(mouseSlot.X, mouseSlot.Y);
+            }
             // Replace the slot
-            else ReplaceSlot(mouseSlot.X, mouseSlot.Y);
+            else
+            {
+                if (ReplaceSlot(mouseSlot.X, mouseSlot.Y))
+                {
+                    // Play successful sound
+                    players[ConsolePlayer].mo.A_StartSound("LSS_SelectSound", 0, CHANF_UI == true, LSS_UIVolume);
+                }
+                else
+                {
+                    // Play invalid sound
+                    players[ConsolePlayer].mo.A_StartSound("LSS_InvalidSound", 0, CHANF_UI == true, LSS_UIVolume);
+                }
+            }
         }
         
-        // TODO:
-        // Precalculate the weapons that the player currently has
-        // The only thing to do every frame is draw the boxes
+        // Swapping
+        if (mouseReleased && hasSlotSelected)
+        {
+            mouseReleased = false;
+
+            // Check if released on the same slot, is so, then do nothing
+            if (slotSelected == mouseSlot)
+            {
+                tryingToSwap = false;
+                //Console.printf("Not swapping.");
+
+                // Playsound
+                players[ConsolePlayer].mo.A_StartSound("LSS_SelectSound", 0, CHANF_UI == true, LSS_UIVolume);
+            }
+            else
+            {
+                tryingToSwap = false;
+                //Console.printf("Swapping!");
+                
+                if (SwapSlot(slotSelected, mouseSlot))
+                {
+                    // Play successful sound
+                    players[ConsolePlayer].mo.A_StartSound("LSS_SwapSound", 0, CHANF_UI == true, LSS_UIVolume);
+                }
+                else
+                {
+                    // Play invalid sound
+                    players[ConsolePlayer].mo.A_StartSound("LSS_InvalidSound", 0, CHANF_UI == true, LSS_UIVolume);
+                }
+            }
+        }
+
         DrawWeaponBoxes();
     }
 
@@ -220,6 +270,25 @@ extend class LSS_EventHandler
                 // Decrement because we no longer want to count this one
                 slotRowCount[currentWeapon.slot]--;
             }
+            // Trying to swap weapons
+            else if (tryingToSwap && selectedWeaponString != "")
+            {
+                // Highlight the slot selected with the mouse
+                if (!hasSlotSelected && mouseSlot == (currentWeapon.slot, currentWeapon.row))
+                {
+                    color2 = highlightColor;
+                }
+                // Border if weapon is held by the player
+                if (players[Consoleplayer].ReadyWeapon != null && players[Consoleplayer].ReadyWeapon.GetClassName() == currentWeapon.weapon.GetClassName())
+                {
+                    color1 = heldWeaponColor;
+                }
+
+                // Draw the other slots
+                int alphaValue = (mouseSlot == (currentWeapon.slot, currentWeapon.row)) ? swapAlphaValue : 1;
+                DrawWeaponBox(currentWeapon.slot, currentWeapon.row + rowOffset, currentWeapon, color1, color2, alphaValue);
+            }
+            // Trying to insert weapon
             else
             {
                 // If a weapon is selected, and below where hovered over
@@ -304,11 +373,52 @@ extend class LSS_EventHandler
                 color1 = heldWeaponColor;
             }
 
-            // Draw ghost
-            if (validGhost) DrawWeaponBox(ghostX, ghostY, selectedWeaponObject, color1, color2, ghostAlphaValue);
+            // Inserting weapon
+            if (!tryingToSwap)
+            {
+                // Draw ghost
+                if (validGhost) DrawWeaponBox(ghostX, ghostY, selectedWeaponObject, color1, color2, ghostAlphaValue);
 
-            // Draw the weapon on the cursor if there is one
-            DrawWeaponBoxOnCursor(selectedWeaponObject, color1, highlightColor);
+                // Draw the weapon on the cursor if there is one
+                DrawWeaponBoxOnCursor(selectedWeaponObject, color1, highlightColor);
+            }
+            // Dragging the cursor
+            else
+            {
+                // Ghost on cursor
+                if (validGhost) DrawWeaponBox(ghostX, ghostY, selectedWeaponObject, color1, color2, ghostAlphaValue);
+
+                // Get the weapon swapping to
+                LSS_Weapon weaponToSwap;
+                for (int i = 0; i < currentWeapons.Size(); i++)
+                {
+                    if (currentWeapons[i].slot == ghostX && currentWeapons[i].row == ghostY)
+                    {
+                        weaponToSwap = currentWeapons[i];
+                        break;
+                    }
+                }
+
+                // Color the ghost and cursor weapon
+                // Alternating colors
+                color1 = (slotSelected.X % 2 == 0) ? outerColor : outerColorAlt;
+                color2 = (slotSelected.X % 2 == 0) ? innerColor : innerColorAlt;
+
+                // Ghost where originaly clicked
+                if (weaponToSwap)
+                {
+                    if (validGhost)
+                    {
+                        // Valid swap
+                        DrawWeaponBox(slotSelected.X, slotSelected.Y, weaponToSwap, color1, color2, ghostAlphaValue);
+                    }
+                    else
+                    {
+                        // Trying to swap into an invalid position
+                        DrawWeaponBoxOnCursor(selectedWeaponObject, color1, color2, ghostAlphaValue);
+                    }
+                }
+            }
         }
     }
 
@@ -328,15 +438,30 @@ extend class LSS_EventHandler
             ghostAlphaValue
         );
 
-        Screen.DrawTexture(
-            currentWeapon.weapon.FindState("Spawn", true).GetSpriteTexture(0, 0, (0, 0)),
-            true,
-            (boxWidth * slot) + (boxWidth / 2),
-            (boxHeight * (row + 1) + (boxHeight / 6)),
-            DTA_Alpha, ghostAlphaValue,
-            DTA_ScaleX, scalingFactor * 1,
-            DTA_ScaleY, scalingFactor * 1
-        );
+        // Sprite texture
+        TextureID texture;
+        // Flags from: https://zdoom.org/wiki/GetInventoryIcon
+        if (BaseStatusBar.GetInventoryIcon(currentWeapon.weapon, 15))
+        {
+            texture = BaseStatusBar.GetInventoryIcon(currentWeapon.weapon, 15);
+        }
+        else
+        {
+            texture = currentWeapon.weapon.FindState("Spawn", true).GetSpriteTexture(0, 0, (0, 0));
+        }
+
+        if (texture.IsValid())
+        {
+            Screen.DrawTexture(
+                texture,
+                true,
+                (boxWidth * slot) + (boxWidth / 2),
+                (boxHeight * (row + 1) + (boxHeight / 6)),
+                DTA_Alpha, ghostAlphaValue,
+                DTA_ScaleX, scalingFactor * 1,
+                DTA_ScaleY, scalingFactor * 1
+            );
+        }
 
         Screen.DrawText(
             OriginalSmallFont, 
@@ -375,6 +500,7 @@ extend class LSS_EventHandler
             true,
             MousePosition.X + offset.X,
             MousePosition.Y + (boxHeight / 6) + offset.Y,
+            DTA_Alpha, ghostAlphaValue,
             DTA_ScaleX, scalingFactor * 1,
             DTA_ScaleY, scalingFactor * 1
         );
@@ -443,13 +569,14 @@ extend class LSS_EventHandler
 
     /***
     *   Inserts the weapon into the slot, pushing the others around
+    *   Returns true if successful, false if not
     */
-    private ui void ReplaceSlot(int slotNumber, int slotRow)
+    private ui bool ReplaceSlot(int slotNumber, int slotRow)
     {
         // Clicked out of bounds, nothing happens
         if (mouseSlot == (-1, -1))
         {
-            return;
+            return false;
         }
 
         // Clicked the same slot, set it down and do nothing else
@@ -459,7 +586,7 @@ extend class LSS_EventHandler
             hasSlotSelected = false;
             selectedWeaponString = "";
             //Console.printf("Nothing happened...");
-            return;
+            return true;
         }
 
         int oldCurrentSlot = (slotSelected.X == 9) ? 0 : slotSelected.X + 1;
@@ -609,5 +736,84 @@ extend class LSS_EventHandler
         slotSelected = (-1, -1);
         hasSlotSelected = false;
         selectedWeaponString = "";
+        return true;
+    }
+
+    /***
+    *   Tried to swap start and destination.
+    *   Returns true if successful, false if not
+    */
+    private ui bool SwapSlot(Vector2 start, Vector2 destination)
+    {
+        // Invalid destination
+        if (destination.X < 0 || destination.X > 10 || destination.Y < 0)
+        {
+            // Refresh the screen
+            UpdateCurrentWeaponsArray();
+            SaveCurrentWeaponsToDisk();
+            slotSelected = (-1, -1);
+            hasSlotSelected = false;
+            selectedWeaponString = "";
+            return false;
+        }
+
+        // Check how many rows
+        int weaponsInSlot = 0;
+        for (int i = 0; i < currentWeapons.Size(); i++)
+        {
+            if (currentWeapons[i].slot == destination.X)
+            {
+                weaponsInSlot++;
+            }
+        }
+
+        // Move the first weapon
+        ReplaceSlot(destination.X, destination.Y);
+
+        if (weaponsInSlot == 0) return true;
+
+        // Clamp the row if too far
+        int newDestinationRow;
+        if (destination.Y > weaponsInSlot + 1)
+        {
+            newDestinationRow = weaponsInSlot + 1;
+        }
+        else
+        {
+            newDestinationRow = destination.Y;
+        }
+
+        int offset;
+        if (start.X != destination.X || start.Y > destination.Y) offset = 1;
+        else offset = -1;
+
+        // Set up the second weapon
+        slotSelected = (destination.X, destination.Y + offset);
+
+        for (int i = 0; i < currentWeapons.Size(); i++)
+        {
+            if (currentWeapons[i].slot == destination.X && currentWeapons[i].row == newDestinationRow + offset)
+            {
+                selectedWeaponString = currentWeapons[i].weapon.GetClassName();
+                break;
+            }
+        }
+
+        // If empty string, that slot is empty, so do not swap anything
+        //Console.printf(" weapon to swap: "..selectedWeaponString);
+        if (selectedWeaponString == "")
+        {
+            // Refresh the screen
+            UpdateCurrentWeaponsArray();
+            SaveCurrentWeaponsToDisk();
+            slotSelected = (-1, -1);
+            hasSlotSelected = false;
+            selectedWeaponString = "";
+            return true;
+        }
+
+        // Move the second weapon
+        ReplaceSlot(start.X, start.Y);
+        return true;
     }
 }

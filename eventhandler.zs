@@ -5,6 +5,7 @@ class LSS_EventHandler : EventHandler
     ui Vector2 MousePosition;
 
     ui bool mouseClicked;
+    ui bool mouseReleased;
     ui Vector2 slotSelected;
     ui bool hasSlotSelected;
     ui String selectedWeaponString;
@@ -34,7 +35,7 @@ class LSS_EventHandler : EventHandler
         }
         
         // Player tries to edit
-        if (event.Name == "LSS_Edit")
+        else if (event.Name == "LSS_Edit")
         {
             UpdateCurrentWeaponsArray();
             SaveCurrentWeaponsToDisk();
@@ -59,14 +60,22 @@ class LSS_EventHandler : EventHandler
             //SendNetworkEvent("LSS_WeaponSwitchTo" .. randomWeaponName);
         }
 
+        // Reset Slot Settings
+        else if (event.Name == "LSS_ResetSlotCustomizationSettings")
+        {
+            CVar.GetCvar("LSS_GhostAlphaValue", players[ConsolePlayer]).ResetToDefault();
+            CVar.GetCvar("LSS_SwapAlphaValue", players[ConsolePlayer]).ResetToDefault();
+            CVar.GetCvar("LSS_CursorOffset", players[ConsolePlayer]).ResetToDefault();
+            CVar.GetCvar("LSS_UIVolume", players[ConsolePlayer]).ResetToDefault();
+        }
         // Set Color Preset
-        if (event.Name == "LSS_SetPreset")
+        else if (event.Name == "LSS_SetPreset")
         {
             SetColorPreset();
         }
 
         // Reset slots
-        if (event.Name == "LSS_ResetSlots")
+        else if (event.Name == "LSS_ResetSlots")
         {
             CVar slotCVar;
             for (int i = 0; i < 10; i++)
@@ -117,15 +126,24 @@ class LSS_EventHandler : EventHandler
             PlayerSlotNumberSelected(weaponSlot);
         }
 
+        // Key released
         if (event.Type == UiEvent.Type_KeyUp && UiEvent.Type_Char)
         {
             keyDown = false;
         }
 
+        // Mouse clicked
         if (event.Type == event.Type_LButtonDown && mouseClicked == false)
         {
             //Console.printf("Mouse clicked!");
             mouseClicked = true;
+        }
+
+        // Mouse released
+        if (event.Type == event.Type_LButtonUp)
+        {
+            //Console.printf("Mouse released!");
+            mouseReleased = true;
         }
 
         return false;
@@ -394,9 +412,14 @@ class LSS_EventHandler : EventHandler
                 UpdateCurrentWeaponsArray();
                 SaveCurrentWeaponsToDisk();
             }
+            String newWeaponString = currentWeaponsInSlot[weaponIndex];
+
+            // Print out a hudmessage
+            //HUDMessageBase message = new HUDMessageBase("Message");
+            //StatusBar.AttachMessage(message);
 
             // Finally switch weapons
-            SendNetworkEvent("LSS_WeaponSwitchTo"..currentWeaponsInSlot[weaponIndex]);
+            SendNetworkEvent("LSS_WeaponSwitchTo"..newWeaponString);
         }
         // If not, then switch to the first weapon in the new slot
         else

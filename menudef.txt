@@ -6,10 +6,18 @@ AddOptionMenu "OptionsMenu"
 OptionMenu "SlotsOptions"
 {
     Title "Lemon's Smart Slots"
-    StaticText "Weapon Slot Settings", 1
+    StaticText "Weapon Slot Gameplay Settings", 1
     Option "Remember Last Used Weapon per Slot", "LSS_RememberLastWeaponInSlot", "Boolean"
-    Slider "Ghost Alpha", "LSS_GhostAlphaValue", 0, 1, 0.05, 2
+    StaticText ""
+    SafeCommand "Reset Saved Slots (Can help with lag)", "event LSS_ResetSlots", "Are you sure?"
+    StaticText ""
+    StaticText "Weapon Slot Customization", 1
+    Slider "Insert Ghost Alpha", "LSS_GhostAlphaValue", 0, 1, 0.05, 2
+    Slider "Swap Ghost Alpha", "LSS_SwapAlphaValue", 0, 1, 0.05, 2
     Slider "Cursor Offset", "LSS_CursorOffset", 0, 2, 0.05, 2
+    Slider "UI Volume", "LSS_UIVolume", 0, 1, 0.05, 2
+    StaticText ""
+    SafeCommand "Reset Weapon Slot Customization Settings", "event LSS_ResetSlotCustomizationSettings", "Are you sure?"
     StaticText ""
 
     StaticText "Colors", 1
@@ -40,8 +48,6 @@ OptionMenu "SlotsOptions"
     Control "Weapon Slot 8", "event LSS_Switch8"
     Control "Weapon Slot 9", "event LSS_Switch9"
     Control "Weapon Slot 0", "event LSS_Switch0"
-    StaticText ""
-    SafeCommand "Reset Saved Slots", "event LSS_ResetSlots", "Are you sure?"
 }
 
 OptionValue "ColorPresets"

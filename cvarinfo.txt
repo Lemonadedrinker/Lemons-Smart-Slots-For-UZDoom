@@ -8,7 +8,9 @@ nosave user Color LSS_HighlightColor = "b6 b1 c2";
 nosave user Color LSS_HeldWeaponColor = "97 8e 9b";
 
 nosave user float LSS_GhostAlphaValue = 0.4;
-nosave user float LSS_CursorOffset = 1;
+nosave user float LSS_SwapAlphaValue = 0.8;
+nosave user float LSS_CursorOffset = 1.2;
+nosave user float LSS_UIVolume = 1.0;
 
 nosave user bool LSS_RememberLastWeaponInSlot = false;
 
