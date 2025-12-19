@@ -201,17 +201,19 @@ class LSS_EventHandler : EventHandler
 
             defaultSlot = playerWeapon.SlotNumber;
 
+            String weaponClassName = playerWeapon.GetClassName();
+
             // Vanilla Doom weapons need to be hardcoded because ZDoom does not
             // automatically assign slots to them (I think)
-            if (playerWeapon.GetClassName() == 'Fist' || playerWeapon.GetClassName() == 'Chainsaw') defaultSlot = 1;
-            else if (playerWeapon.GetClassName() == 'Pistol') defaultSlot = 2;
-            else if (playerWeapon.GetClassName() == 'Shotgun' || playerWeapon.GetClassName() == 'SuperShotgun') defaultSlot = 3;
-            else if (playerWeapon.GetClassName() == 'Chaingun') defaultSlot = 4;
-            else if (playerWeapon.GetClassName() == 'RocketLauncher') defaultSlot = 5;
-            else if (playerWeapon.GetClassName() == 'PlasmaRifle') defaultSlot = 6;
-            else if (playerWeapon.GetClassName() == 'BFG9000') defaultSlot = 7;
-            //else if (playerWeapon.GetClassName() == 'ID24Incinerator') defaultSlot = 8;
-            //else if (playerWeapon.GetClassName() == 'ID24CalamityBlade') defaultSlot = 9;
+            if (weaponClassName ~== "Fist" || weaponClassName ~== "Chainsaw") defaultSlot = 1;
+            else if (weaponClassName ~== "Pistol") defaultSlot = 2;
+            else if (weaponClassName ~== "Shotgun" || weaponClassName ~== "SuperShotgun") defaultSlot = 3;
+            else if (weaponClassName ~== "Chaingun") defaultSlot = 4;
+            else if (weaponClassName ~== "RocketLauncher") defaultSlot = 5;
+            else if (weaponClassName ~== "PlasmaRifle") defaultSlot = 6;
+            else if (weaponClassName ~== "BFG9000") defaultSlot = 7;
+            //else if (weaponClassName ~== "ID24Incinerator") defaultSlot = 8;
+            //else if (weaponClassName ~== "ID24CalamityBlade") defaultSlot = 9;
 
             //Console.printf(" Weapon "..playerWeapon.GetClassName().." with defaultSlot: %i", defaultSlot);
 
