@@ -35,6 +35,9 @@ OptionMenu "SlotsOptions"
     ColorPicker "Weapon Box Fill Alternate", "LSS_InnerColorAlt", "LSS_UsingAlternatingColors"
     StaticText ""
 
+    SafeCommand "Uninstall Mod", "netevent LSS_Uninstall", "Are you sure? A map change will restart the mod."
+    StaticText ""
+
     StaticText "Keybinds", 1
     Control "Edit Slots", "event LSS_Edit"
     StaticText ""

@@ -11,6 +11,7 @@ class LSS_EventHandler : EventHandler
     ui String selectedWeaponString;
 
     ui bool keyDown;
+    private bool uninstallingMod;
 
     /**
     * Processes keybinds
@@ -177,6 +178,35 @@ class LSS_EventHandler : EventHandler
         {
             self.IsUiProcessor = false;
             self.RequireMouse = false;
+        }
+
+        // Uninstall the mod by deleting the event handler, only if it is the arbitrator
+        else if (event.Name == "LSS_Uninstall")
+        {
+            //Console.printf("Trying to uninstall mod");
+            //Console.printf("Player number: %i", event.Player);
+            if (net_arbitrator == event.Player)
+            {
+                Console.printf("Uninstalling mod. Have a good day!");
+                uninstallingMod = true;
+            }
+            else
+            {
+                Console.printf("Not uninstalling mod. You must be the arbitrator!");
+            }
+        }
+    }
+
+    override void WorldTick()
+    {
+        // Delete the event handler if the mod is being uninstalled
+        if (uninstallingMod)
+        {
+            if (!bDESTROYED)
+            {
+                Destroy();
+            }
+            return;
         }
     }
 
