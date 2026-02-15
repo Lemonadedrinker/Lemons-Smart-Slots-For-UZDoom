@@ -400,10 +400,48 @@ class LSS_EventHandler : EventHandler
     */
     ui void PlayerRelativeWeaponChange(bool isNextWeapon)
     {
+        //Console.printf(players[Consoleplayer].ReadyWeapon.GetClassName());
+        
+        // Checks to see if the currently held item is a weapon
+        bool isWeapon = false;
+        for (int i = 0; i < currentWeapons.Size(); i++)
+        {
+            if (currentWeapons[i].weapon == players[Consoleplayer].ReadyWeapon)
+            {
+                isWeapon = true;
+                break;
+            }
+        }
+
         // The player's weapon being switched to
+        // If empty, fill with the held weapon
         if (bufferedWeaponString == "")
         {
             bufferedWeaponString = players[Consoleplayer].ReadyWeapon.GetClassName();
+        }
+        // If not a weapon, then switch back to the last held weapon and end the function
+        if (!isWeapon)
+        {
+            //Console.printf("Item to weapon swap!");
+    
+            // Finally, switch weapons
+            //Console.Printf(currentWeapons[currentWeaponIndex].weapon.GetClassName());
+            SendNetworkEvent("LSS_WeaponSwitchTo"..bufferedWeaponString);
+
+            // Find the weapon's index
+            int oldWeaponIndex;
+            for (int i = 0; i < currentWeapons.Size(); i++)
+            {
+                if (currentWeapons[i].weapon.GetClassName() == bufferedWeaponString)
+                {
+                    oldWeaponIndex = i;
+                    break;
+                }
+            }
+
+            // Display the name of the weapon on the bottom of the screen
+            currentWeapons[oldWeaponIndex].weapon.DisplayNameTag();
+            return;
         }
 
         // Check if only one or zero weapons
@@ -448,8 +486,8 @@ class LSS_EventHandler : EventHandler
             // Wrap to the end if too small
             if (currentWeaponIndex == 0)
             {
-                Console.printf("Got here, index is 0.");
-                weaponToSwitchToIndex = 4;
+                //Console.printf("Got here, index is 0.");
+                weaponToSwitchToIndex = currentWeapons.Size() - 1;
             }
             // Otherwise, decrement by 1
             else
@@ -475,8 +513,22 @@ class LSS_EventHandler : EventHandler
     */
     ui void PlayerSlotNumberSelected(int slot)
     {
+        //Console.printf(players[Consoleplayer].ReadyWeapon.GetClassName());
+        
+        // Checks to see if the currently held item is a weapon
+        bool isWeapon = false;
+        for (int i = 0; i < currentWeapons.Size(); i++)
+        {
+            if (currentWeapons[i].weapon == players[Consoleplayer].ReadyWeapon)
+            {
+                isWeapon = true;
+                break;
+            }
+        }
+
         // The player's weapon being switched to
-        if (bufferedWeaponString == "")
+        // Either empty or NOT a weapon i.e. an item
+        if (bufferedWeaponString == "" || !isWeapon)
         {
             bufferedWeaponString = players[Consoleplayer].ReadyWeapon.GetClassName();
         }
