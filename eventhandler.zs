@@ -3,6 +3,7 @@ class LSS_EventHandler : EventHandler
     ui bool isEditing;
     ui Array<LSS_Weapon> currentWeapons; // Stored how the player orders it
     ui String bufferedWeaponString; // The weapon currently being switched to
+    ui String lastSelectedWeapon;
     ui Vector2 MousePosition;
 
     ui bool mouseClicked;
@@ -514,21 +515,20 @@ class LSS_EventHandler : EventHandler
     ui void PlayerSlotNumberSelected(int slot)
     {
         //Console.printf(players[Consoleplayer].ReadyWeapon.GetClassName());
-        
-        // Checks to see if the currently held item is a weapon
-        bool isWeapon = false;
-        for (int i = 0; i < currentWeapons.Size(); i++)
+
+        // Reset the weapon if the Buffered Weapon String does not match the ReadyWeapon,
+        // ONLY if PendingWeapon is WP_NOCHANGE
+        if (
+                bufferedWeaponString != players[Consoleplayer].ReadyWeapon.GetClassName() &&
+                players[Consoleplayer].PendingWeapon == WP_NOCHANGE
+            )
         {
-            if (currentWeapons[i].weapon == players[Consoleplayer].ReadyWeapon)
-            {
-                isWeapon = true;
-                break;
-            }
+            bufferedWeaponString = players[Consoleplayer].ReadyWeapon.GetClassName();
         }
 
         // The player's weapon being switched to
-        // Either empty or NOT a weapon i.e. an item
-        if (bufferedWeaponString == "" || !isWeapon)
+        // If empty, then fill
+        if (bufferedWeaponString == "")
         {
             bufferedWeaponString = players[Consoleplayer].ReadyWeapon.GetClassName();
         }
@@ -571,7 +571,7 @@ class LSS_EventHandler : EventHandler
         if (inCustomSlot)
         {
             // Do nothing if there is only one weapon
-            if (currentWeaponsInSlotString.Size() == 1) return;
+            //if (currentWeaponsInSlotString.Size() == 1) return;
 
             // Find the index of the current weapon
             // Increment by 1 because we want the next weapon
