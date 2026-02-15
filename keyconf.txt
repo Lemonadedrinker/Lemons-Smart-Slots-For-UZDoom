@@ -1,5 +1,8 @@
 AddKeySection "Lemons Smart Slots" LemonsSmartSlots
 AddMenuKey "Edit Slots" LSS_Edit
+AddMenuKey "Next Weapon" LSS_NextWeapon
+AddMenuKey "Previous Weapon LSS_PrevWeapon
+
 AddMenuKey "Weapon Slot 1" LSS_Switch1
 AddMenuKey "Weapon Slot 2" LSS_Switch2
 AddMenuKey "Weapon Slot 3" LSS_Switch3
@@ -11,7 +14,11 @@ AddMenuKey "Weapon Slot 8" LSS_Switch8
 AddMenuKey "Weapon Slot 9" LSS_Switch9
 AddMenuKey "Weapon Slot 0" LSS_Switch0
 
+
 Alias LSS_Edit "event LSS_Edit"
+Alias LSS_NextWeapon "event LSS_NextWeapon"
+Alias LSS_PrevWeapon "event LSS_PrevWeapon"
+
 Alias LSS_Switch1 "event LSS_Switch1"
 Alias LSS_Switch2 "event LSS_Switch2"
 Alias LSS_Switch3 "event LSS_Switch3"
