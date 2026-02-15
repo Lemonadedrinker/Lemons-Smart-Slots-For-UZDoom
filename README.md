@@ -1,6 +1,6 @@
-# Lemons-Smart-Slots-For-GZDoom
-My implementation for customizable slots for weapons in GZDoom.
-It is designed for singleplayer and multiplayer.
+# Lemons-Smart-Slots-For-UZDoom
+My implementation for customizable slots for weapons in UZDoom.
+It is designed for singleplayer and multiplayer, and should work for any mods that add/replace weapons.
 
 To use, press the "Edit Slots" key (default ') to open the user interface.
 You can then click each weapon to insert into a different slot.
