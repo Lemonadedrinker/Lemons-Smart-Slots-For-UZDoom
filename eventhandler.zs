@@ -1,7 +1,8 @@
 class LSS_EventHandler : EventHandler
 {
     ui bool isEditing;
-    ui Array<LSS_Weapon> currentWeapons;
+    ui Array<LSS_Weapon> currentWeapons; // Stored how the player orders it
+    ui String weaponCurrentlySwitchingTo; // The weapon currently being switched to
     ui Vector2 MousePosition;
 
     ui bool mouseClicked;
@@ -20,8 +21,28 @@ class LSS_EventHandler : EventHandler
     {
         if(players[Consoleplayer].mo == null) return;
 
-        // Player switches weapons
-        if (event.Name.Left(10) == "LSS_Switch")
+        // Player switches to the next weapon
+        if (event.Name == "LSS_NextWeapon")
+        {
+            //Console.printf("Trying to switch to the next weapon!");
+            UpdateCurrentWeaponsArray();
+            SaveCurrentWeaponsToDisk();
+
+            PlayerRelativeWeaponChange(true);
+        }
+
+        // Player switches to the previous weapon
+        else if (event.Name == "LSS_PrevWeapon")
+        {
+            //Console.printf("Trying to switch to the previous weapon!");
+            UpdateCurrentWeaponsArray();
+            SaveCurrentWeaponsToDisk();
+
+            PlayerRelativeWeaponChange(false);
+        }
+
+        // Player switches to a specific slot
+        else if (event.Name.Left(10) == "LSS_Switch")
         {
             // Trim the digit, convert that to an int
             String digitString = event.Name;
@@ -374,13 +395,91 @@ class LSS_EventHandler : EventHandler
     }
 
     /***
+    *   Translates a relative weapon switch into an absolute weapon to switch to
+    *   The weapon is sent over the network to every client
+    */
+    ui void PlayerRelativeWeaponChange(bool isNextWeapon)
+    {
+        // The player's weapon being switched to
+        if (weaponCurrentlySwitchingTo == "")
+        {
+            weaponCurrentlySwitchingTo = players[Consoleplayer].ReadyWeapon.GetClassName();
+        }
+
+        // Check if only one or zero weapons
+        // If so, then do nothing
+        if (currentWeapons.Size() < 2) return;
+
+        // Current weapons is already sorted
+        // We need to find the index of the currently held weapon
+        int currentWeaponIndex = -1;
+        for (int weapon = 0; weapon < currentWeapons.Size(); weapon++)
+        {
+            //Console.printf(" Weapon: "..currentWeapons[weapon].weapon.GetClassName());
+            if (currentWeapons[weapon].weapon.GetClassName() == weaponCurrentlySwitchingTo)
+            {
+                currentWeaponIndex = weapon;
+                break;
+            }
+        }
+        //Console.printf("currentWeaponIndex: %i", currentWeaponIndex);
+
+        // Should never happen?
+        if (currentWeaponIndex == -1) return;
+
+        // Next weapon
+        int weaponToSwitchToIndex;
+        if (isNextWeapon)
+        {
+            // Wrap to the start if too large
+            if (currentWeaponIndex == currentWeapons.Size() - 1)
+            {
+                weaponToSwitchToIndex = 0;
+            }
+            // Otherwise, increment by 1
+            else
+            {
+                weaponToSwitchToIndex = currentWeaponIndex + 1;
+            }
+        }
+        // Previous weapon
+        else
+        {
+            // Wrap to the end if too small
+            if (currentWeaponIndex == 0)
+            {
+                Console.printf("Got here, index is 0.");
+                weaponToSwitchToIndex = 4;
+            }
+            // Otherwise, decrement by 1
+            else
+            {
+                weaponToSwitchToIndex = currentWeaponIndex - 1;
+            }
+        }
+
+        //Console.printf("weaponToSwitchToIndex: %i", weaponToSwitchToIndex);
+
+        // Finally, switch weapons
+        //Console.Printf(currentWeapons[currentWeaponIndex].weapon.GetClassName());
+        weaponCurrentlySwitchingTo = currentWeapons[weaponToSwitchToIndex].weapon.GetClassName();
+        SendNetworkEvent("LSS_WeaponSwitchTo"..currentWeapons[weaponToSwitchToIndex].weapon.GetClassName());
+
+        // Display the name of the weapon on the bottom of the screen
+        currentWeapons[weaponToSwitchToIndex].weapon.DisplayNameTag();
+    }
+
+    /***
     *   Translates a slot number into a weapon to switch to
     *   The weapon is sent over the network to every client
     */
     ui void PlayerSlotNumberSelected(int slot)
     {
-        // The player's current held weapon
-        Weapon heldWeapon = players[Consoleplayer].ReadyWeapon;
+        // The player's weapon being switched to
+        if (weaponCurrentlySwitchingTo == "")
+        {
+            weaponCurrentlySwitchingTo = players[Consoleplayer].ReadyWeapon.GetClassName();
+        }
 
         // This is the list of weapons for the slot
         String weaponString = CVar.GetCvar("LSS_Slot"..slot, players[ConsolePlayer]).GetString();
@@ -407,7 +506,7 @@ class LSS_EventHandler : EventHandler
                     currentWeaponsInSlotObject.Push(currentWeapons[j].weapon);
 
                     // Check if the held weapon is in the slot
-                    if (currentWeapons[j].weapon.GetClassName() == heldWeapon.GetClassName()) inCustomSlot = true;
+                    if (currentWeapons[j].weapon.GetClassName() == weaponCurrentlySwitchingTo) inCustomSlot = true;
                 }
             }
         }
@@ -424,7 +523,7 @@ class LSS_EventHandler : EventHandler
 
             // Find the index of the current weapon
             // Increment by 1 because we want the next weapon
-            weaponIndex = currentWeaponsInSlotString.Find(heldWeapon.GetClassName());
+            weaponIndex = currentWeaponsInSlotString.Find(weaponCurrentlySwitchingTo);
             weaponIndex++;
 
             // If the index matches the size, then it was the last one,
@@ -436,12 +535,12 @@ class LSS_EventHandler : EventHandler
             if (LSS_RememberLastWeaponInSlot)
             {
                 CVar slotCVar = CVar.GetCVar("LSS_Slot"..slot, players[ConsolePlayer]);
-                int slotCVarIndex = slotCVar.GetString().IndexOf(heldWeapon.GetClassName());
-                String heldWeaponString = heldWeapon.GetClassName();
+                int slotCVarIndex = slotCVar.GetString().IndexOf(weaponCurrentlySwitchingTo);
+                String heldWeaponString = weaponCurrentlySwitchingTo;
                 slotCVar.SetString(
                     slotCVar.GetString().Left(slotCVarIndex)..
-                    slotCVar.GetString().Mid(slotCVarIndex + heldWeaponString.Length() + 1)..
-                    heldWeapon.GetClassName()..","
+                    slotCVar.GetString().Mid(slotCVarIndex + weaponCurrentlySwitchingTo.Length() + 1)..
+                    weaponCurrentlySwitchingTo..","
                 );
 
                 UpdateCurrentWeaponsArray();
@@ -454,12 +553,14 @@ class LSS_EventHandler : EventHandler
             //StatusBar.AttachMessage(message);
 
             // Finally switch weapons
+            weaponCurrentlySwitchingTo = newWeaponString;
             SendNetworkEvent("LSS_WeaponSwitchTo"..newWeaponString);
         }
         // If not, then switch to the first weapon in the new slot
         else
         {
             //Console.printf(currentWeaponsInSlotString[0]);
+            weaponCurrentlySwitchingTo = currentWeaponsInSlotString[0];
             SendNetworkEvent("LSS_WeaponSwitchTo"..currentWeaponsInSlotString[0]);
         }
         // Display the name of the weapon on the bottom of the screen
