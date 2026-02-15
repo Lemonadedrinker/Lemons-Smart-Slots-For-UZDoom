@@ -40,6 +40,8 @@ OptionMenu "SlotsOptionsMain"
 
     StaticText "Keybinds", 1
     Control "Edit Slots", "event LSS_Edit"
+    Control "Next Weapon", "event LSS_NextWeapon"
+    Control "Previous Weapon", "event LSS_PrevWeapon"
     StaticText ""
     Control "Weapon Slot 1", "event LSS_Switch1"
     Control "Weapon Slot 2", "event LSS_Switch2"
