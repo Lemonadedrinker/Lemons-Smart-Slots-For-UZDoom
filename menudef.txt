@@ -35,22 +35,11 @@ OptionMenu "SlotsOptionsMain"
     ColorPicker "Weapon Box Fill Alternate", "LSS_InnerColorAlt", "LSS_UsingAlternatingColors"
     StaticText ""
 
-    SafeCommand "Uninstall Mod", "netevent LSS_Uninstall", "Are you sure? A map change will restart the mod."
-    StaticText ""
-
     StaticText "Keybinds", 1
     Control "Edit Slots", "event LSS_Edit"
     StaticText ""
-    Control "Weapon Slot 1", "event LSS_Switch1"
-    Control "Weapon Slot 2", "event LSS_Switch2"
-    Control "Weapon Slot 3", "event LSS_Switch3"
-    Control "Weapon Slot 4", "event LSS_Switch4"
-    Control "Weapon Slot 5", "event LSS_Switch5"
-    Control "Weapon Slot 6", "event LSS_Switch6"
-    Control "Weapon Slot 7", "event LSS_Switch7"
-    Control "Weapon Slot 8", "event LSS_Switch8"
-    Control "Weapon Slot 9", "event LSS_Switch9"
-    Control "Weapon Slot 0", "event LSS_Switch0"
+
+    SafeCommand "Uninstall Mod", "netevent LSS_Uninstall", "Are you sure? A map change will reinstall the mod."
 }
 
 OptionValue "ColorPresets"
