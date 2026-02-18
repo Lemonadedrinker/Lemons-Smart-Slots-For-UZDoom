@@ -1,5 +1,5 @@
 version 4.14.2
 
-#include "eventhandler.zs"
-#include "graphics/userinterface.zs"
-#include "weaponclass.zs"
+#include "scripts/lss_eventhandler.zs"
+#include "scripts/lss_userinterface.zs"
+#include "scripts/lss_weaponclass.zs"
