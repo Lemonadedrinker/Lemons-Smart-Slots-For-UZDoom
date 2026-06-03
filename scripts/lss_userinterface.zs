@@ -318,7 +318,7 @@ extend class LSS_EventHandler
                     color2 = highlightColor;
                 }
                 // Border if weapon is held by the player
-                if (players[Consoleplayer].ReadyWeapon != null && players[Consoleplayer].ReadyWeapon.GetClassName() == currentWeapon.weapon.GetClassName())
+                if (players[Consoleplayer].ReadyWeapon != null && currentWeapon.weapon != null && players[Consoleplayer].ReadyWeapon.GetClassName() == currentWeapon.weapon.GetClassName())
                 {
                     color1 = heldWeaponColor;
                 }
@@ -449,13 +449,17 @@ extend class LSS_EventHandler
         TextureID texture;
         // Flags from: https://zdoom.org/wiki/GetInventoryIcon
         int flags = 1 + 2 + 8 + 16;
-        if (BaseStatusBar.GetInventoryIcon(currentWeapon.weapon, flags))
+        if (currentWeapon.weapon != null && BaseStatusBar.GetInventoryIcon(currentWeapon.weapon, flags))
         {
             texture = BaseStatusBar.GetInventoryIcon(currentWeapon.weapon, flags);
         }
-        else
+        else if (currentWeapon.weapon != null && currentWeapon.weapon.FindState("Spawn", true).GetSpriteTexture(0, 0, (0, 0)).IsValid())
         {
             texture = currentWeapon.weapon.FindState("Spawn", true).GetSpriteTexture(0, 0, (0, 0));
+        }
+        else
+        {
+            texture = TexMan.CheckForTexture("TNT1");
         }
 
         //Console.printf("%i", TexMan.CheckRealHeight(texture));
@@ -491,7 +495,9 @@ extend class LSS_EventHandler
 
         // Add return character after 12
         // 12 happens to be the size of the boxes
-        String textToDraw = currentWeapon.weapon.GetTag();
+        String textToDraw = "";
+        if (currentWeapon.weapon != null) textToDraw = currentWeapon.weapon.GetTag();
+
         int returnIndex = textToDraw.RightIndexOf(" ", 12);
         if (returnIndex == -1) returnIndex == 12;
 
@@ -636,6 +642,8 @@ extend class LSS_EventHandler
         if (slotNumber < 0 || slotNumber > 9) return;
 
         int oldCurrentSlot = (slotNumber == 9) ? 0 : slotNumber + 1;
+
+        UpdateCurrentWeaponsArray();
 
         // This is the list of weapons for the slots
         CVar oldCVar = CVar.GetCvar("LSS_Slot"..oldCurrentSlot, players[ConsolePlayer]);
