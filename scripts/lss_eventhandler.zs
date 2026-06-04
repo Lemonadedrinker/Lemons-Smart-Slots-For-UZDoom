@@ -414,9 +414,15 @@ class LSS_EventHandler : EventHandler
             }
         }
 
+        // Check if no weapon held, then set it to an empty string
+        if (players[Consoleplayer].ReadyWeapon == null)
+        {
+            bufferedWeaponString = "";
+        }
+
         // The player's weapon being switched to
         // If empty, fill with the held weapon
-        if (bufferedWeaponString == "")
+        if (bufferedWeaponString == "" && players[Consoleplayer].ReadyWeapon != null)
         {
             bufferedWeaponString = players[Consoleplayer].ReadyWeapon.GetClassName();
         }
@@ -516,9 +522,14 @@ class LSS_EventHandler : EventHandler
     {
         //Console.printf(players[Consoleplayer].ReadyWeapon.GetClassName());
 
+        // Check if no weapon held, then set it to an empty string
+        if (players[Consoleplayer].ReadyWeapon == null)
+        {
+            bufferedWeaponString = "";
+        }
         // Reset the weapon if the Buffered Weapon String does not match the ReadyWeapon,
         // ONLY if PendingWeapon is WP_NOCHANGE
-        if (
+        else if (
                 bufferedWeaponString != players[Consoleplayer].ReadyWeapon.GetClassName() &&
                 players[Consoleplayer].PendingWeapon == WP_NOCHANGE
             )
@@ -528,7 +539,7 @@ class LSS_EventHandler : EventHandler
 
         // The player's weapon being switched to
         // If empty, then fill
-        if (bufferedWeaponString == "")
+        if (bufferedWeaponString == "" && players[Consoleplayer].ReadyWeapon != null)
         {
             bufferedWeaponString = players[Consoleplayer].ReadyWeapon.GetClassName();
         }
