@@ -16,6 +16,14 @@ class LSS_EventHandler : EventHandler
     private bool uninstallingMod;
 
     /**
+    *   Forces the UI to close and stop editing
+    */
+    override void WorldUnloaded(WorldEvent event)
+    {   
+        SendNetworkEvent("LSS_NotEditing");
+    }
+
+    /**
     * Processes keybinds
     */
     override void ConsoleProcess(ConsoleEvent event)
@@ -81,6 +89,13 @@ class LSS_EventHandler : EventHandler
             //String randomWeaponName = currentWeapons[randomWeaponIndex].GetClassName();
 
             //SendNetworkEvent("LSS_WeaponSwitchTo" .. randomWeaponName);
+        }
+
+        // Force the player to stop editing i.e. map change
+        else if (event.Name == "LSS_ForceNotEditing")
+        {
+            isEditing = false;
+            SendNetworkEvent("LSS_NotEditing");
         }
 
         // Reset Slot Settings
