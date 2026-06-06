@@ -345,6 +345,11 @@ class LSS_EventHandler : EventHandler
             tempWeapon = tempWeaponArray[i];
             
             int storedSlot = (tempWeapon.slot != 0) ? tempWeapon.slot - 1 : 9;
+
+            // In case of slots out of range
+            if (storedSlot > 9) storedSlot = 9;
+            else if (storedSlot < 0) storedSlot = 0;
+
             tempWeapon.slot = storedSlot;
 
             tempWeapon.row = row[tempWeapon.slot];
