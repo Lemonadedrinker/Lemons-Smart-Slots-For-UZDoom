@@ -12,8 +12,17 @@ class LSS_EventHandler : EventHandler
     ui bool hasSlotSelected;
     ui String selectedWeaponString;
 
+    ui Array<Weapon> weaponList; // List of Weapons to detect if a new one is picked up
+    ui Vector2 highlightedSlot; // Slot to highlight when picking up a new gun
+    ui int slotTimers[10];
+
     ui bool keyDown;
     private bool uninstallingMod;
+
+    override void WorldLoaded(WorldEvent event)
+    {
+        SendInterfaceEvent(ConsolePlayer, "LSS_ResetSlotTimers");
+    }
 
     /**
     *   Forces the UI to close and stop editing
@@ -21,6 +30,24 @@ class LSS_EventHandler : EventHandler
     override void WorldUnloaded(WorldEvent event)
     {   
         SendNetworkEvent("LSS_NotEditing");
+    }
+
+    // Play to UI
+    override void InterfaceProcess(ConsoleEvent event)
+    {
+        // Reset slot timers, on map load
+        if (event.Name == "LSS_ResetSlotTimers")
+        {
+            Console.printf("Resetting slots");
+            for (int i = 0; i < 10; i++)
+            {
+                slotTimers[i] = 0;
+            }
+
+            slotSelected = (-1, -1);
+            hasSlotSelected = false;
+            selectedWeaponString = "";
+        }
     }
 
     /**
@@ -77,6 +104,12 @@ class LSS_EventHandler : EventHandler
                 slotSelected = (-1, -1);
                 hasSlotSelected = false;
                 selectedWeaponString = "";
+
+                for (int i = 0; i < 10; i++)
+                {
+                    slotTimers[i] = 0;
+                }
+
                 SendNetworkEvent("LSS_Editing");
             }
             else
@@ -230,6 +263,75 @@ class LSS_EventHandler : EventHandler
             else
             {
                 Console.printf("Not uninstalling mod. You must be the arbitrator!");
+            }
+        }
+    }
+
+    override void UiTick()
+    {
+        // Decrement the timers
+        for (int i = 0; i < 10; i++)
+        {
+            if (slotTimers[i] > 0)
+            {
+                slotTimers[i]--;
+                //Console.printf("Decrementing slot: %i", i);
+            }
+        }
+
+        // GZDoom's inventory can be parsed through as a linked list, where
+        // Inv is the next item in the list.
+        Array<Weapon> tempWeaponList;
+        Array<Weapon> newWeaponList;
+        Let player = players[Consoleplayer];
+        for (let item = player.mo.Inv; item != null; item = item.Inv)
+        {
+            // Cast item as a weapon
+            let playerWeapon = Weapon(item);
+
+            // If the cast fails, keep going
+            if (!playerWeapon) continue;
+
+            tempWeaponList.Push(playerWeapon);
+        }
+
+        // Check if a new weapon has been picked up.
+        // If so, then show the slot it is in.
+        for (int i = 0; i < tempWeaponList.Size(); i++)
+        {
+            // Check if every weapon is the same.
+            // If there is a new weapon, then the player had just picked it up.
+            if (weaponList.Find(tempWeaponList[i]) == weaponList.Size())
+            {
+                //Console.printf("Picked up: %s", tempWeaponList[i].GetClassName());
+                newWeaponList.Push(tempWeaponList[i]);
+            }
+        }
+
+        // Set up weaponList for the next tick.
+        weaponList = tempWeaponList;
+
+        // Refresh the slots in order to read from them later.
+        if (newWeaponList.Size() != 0)
+        {
+            UpdateCurrentWeaponsArray();
+            SaveCurrentWeaponsToDisk();
+        }
+
+        // Set the slot timers.
+        for (int i = 0; i < newWeaponList.Size(); i++)
+        {
+            // Parse the LSS_Weapons to get the slots
+            for (int j = 0; j < currentWeapons.Size(); j++)
+            {
+                if (currentWeapons[j].Weapon.GetClassName() == newWeaponList[i].GetClassName())
+                {
+                    //Console.printf("Slot: %i", currentWeapons[j].slot);
+                    slotTimers[currentWeapons[j].slot] = 140;
+
+                    // Set the highlighted slot
+                    highlightedSlot = (currentWeapons[j].slot, currentWeapons[j].row);
+                }
             }
         }
     }

@@ -24,7 +24,17 @@ extend class LSS_EventHandler
 
     override void RenderOverlay(RenderEvent event)
     {
-        if (!isEditing)
+        bool activeTimer = false;
+        for (int i = 0; i < 10; i++)
+        {
+            if (slotTimers[i] > 0)
+            {
+                activeTimer = true;
+                break;
+            }
+        }
+
+        if (!isEditing && !activeTimer)
         {
             return;
         }
@@ -190,6 +200,9 @@ extend class LSS_EventHandler
 
         for (int i = 0; i < 10; i++)
         {
+            // Skip if not editing and no timers
+            if (!isEditing && slotTimers[i] == 0) continue;
+
             // Alternating colors
             color1 = (i % 2 == 0) ? outerColor : outerColorAlt;
             color2 = (i % 2 == 0) ? innerColor : innerColorAlt;
@@ -257,9 +270,18 @@ extend class LSS_EventHandler
             int rowOffset = 0;
             slotRowCount[currentWeapon.slot]++;
 
+            // Skip if weaponpickup and row has timer
+            if (!isEditing && slotTimers[currentWeapon.slot] == 0) continue;
+
             // Alternating colors
             color1 = (currentWeapon.slot % 2 == 0) ? outerColor : outerColorAlt;
             color2 = (currentWeapon.slot % 2 == 0) ? innerColor : innerColorAlt;
+
+            // Highlight newest gun picked up
+            if (!isEditing && (currentWeapon.slot, currentWeapon.row) == highlightedSlot)
+            {
+                color2 = highlightColor;
+            }
 
             // This is the slot that has been clicked on
             if (slotSelected == (currentWeapon.slot, currentWeapon.row))
@@ -273,8 +295,8 @@ extend class LSS_EventHandler
             // Trying to swap weapons
             else if (tryingToSwap && selectedWeaponString != "")
             {
-                // Highlight the slot selected with the mouse
-                if (!hasSlotSelected && mouseSlot == (currentWeapon.slot, currentWeapon.row))
+                // Highlight the slot selected with the mouse                
+                if (isEditing && !hasSlotSelected && mouseSlot == (currentWeapon.slot, currentWeapon.row))
                 {
                     color2 = highlightColor;
                 }
@@ -368,7 +390,7 @@ extend class LSS_EventHandler
             color2 = (ghostX % 2 == 0) ? innerColor : innerColorAlt;
 
             // Border if weapon is held
-            if (players[Consoleplayer].ReadyWeapon.GetClassName() == selectedWeaponObject.weapon.GetClassName())
+            if (players[Consoleplayer].ReadyWeapon != null && players[Consoleplayer].ReadyWeapon.GetClassName() == selectedWeaponObject.weapon.GetClassName())
             {
                 color1 = heldWeaponColor;
             }
