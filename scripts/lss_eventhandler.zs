@@ -15,6 +15,8 @@ class LSS_EventHandler : EventHandler
     ui Array<Weapon> weaponList; // List of Weapons to detect if a new one is picked up
     ui Vector2 highlightedSlot; // Slot to highlight when picking up a new gun
     ui int slotTimers[10];
+    ui bool hasActiveTimer; // True if there is at least one timer active
+    ui bool notFirstTick;
 
     ui bool keyDown;
     private bool uninstallingMod;
@@ -38,7 +40,7 @@ class LSS_EventHandler : EventHandler
         // Reset slot timers, on map load
         if (event.Name == "LSS_ResetSlotTimers")
         {
-            Console.printf("Resetting slots");
+            //Console.printf("Resetting slots");
             for (int i = 0; i < 10; i++)
             {
                 slotTimers[i] = 0;
@@ -134,8 +136,6 @@ class LSS_EventHandler : EventHandler
         // Reset Slot Settings
         else if (event.Name == "LSS_ResetSlotCustomizationSettings")
         {
-            CVar.GetCvar("LSS_GhostAlphaValue", players[ConsolePlayer]).ResetToDefault();
-            CVar.GetCvar("LSS_SwapAlphaValue", players[ConsolePlayer]).ResetToDefault();
             CVar.GetCvar("LSS_CursorOffset", players[ConsolePlayer]).ResetToDefault();
             CVar.GetCvar("LSS_UIVolume", players[ConsolePlayer]).ResetToDefault();
         }
@@ -269,20 +269,29 @@ class LSS_EventHandler : EventHandler
 
     override void UiTick()
     {
-        // Decrement the timers
-        for (int i = 0; i < 10; i++)
+        if (!LSS_UsingWeaponPickupPreview) return;
+
+        // Decrement the timers if one is active
+        if (hasActiveTimer)
         {
-            if (slotTimers[i] > 0)
+            bool timerActive = false;
+
+            for (int i = 0; i < 10; i++)
             {
-                slotTimers[i]--;
-                //Console.printf("Decrementing slot: %i", i);
+                if (slotTimers[i] > 0)
+                {
+                    slotTimers[i]--;
+                    //Console.printf("Decrementing slot: %i", i);
+                    timerActive = true;
+                }
             }
+
+            hasActiveTimer = timerActive;
         }
 
         // GZDoom's inventory can be parsed through as a linked list, where
         // Inv is the next item in the list.
         Array<Weapon> tempWeaponList;
-        Array<Weapon> newWeaponList;
         Let player = players[Consoleplayer];
         for (let item = player.mo.Inv; item != null; item = item.Inv)
         {
@@ -295,45 +304,21 @@ class LSS_EventHandler : EventHandler
             tempWeaponList.Push(playerWeapon);
         }
 
-        // Check if a new weapon has been picked up.
-        // If so, then show the slot it is in.
-        for (int i = 0; i < tempWeaponList.Size(); i++)
+        // Janky weird first tick nonsense to avoid
+        if (!notFirstTick)
         {
-            // Check if every weapon is the same.
-            // If there is a new weapon, then the player had just picked it up.
-            if (weaponList.Find(tempWeaponList[i]) == weaponList.Size())
-            {
-                //Console.printf("Picked up: %s", tempWeaponList[i].GetClassName());
-                newWeaponList.Push(tempWeaponList[i]);
-            }
+            notFirstTick = true;
+            return;
         }
+        // If the same size, do nothing for performance
+        else if (weaponList.Size() == tempWeaponList.Size()) return;
+        // Picked up a new weapon
+        else if (weaponList.Size() < tempWeaponList.Size()) PlayerPickedUpNewWeapon(tempWeaponList);
+        // Dropped a weapon
+        else if (LSS_PreviewOnWeaponDropped) PlayerDroppedWeapon(tempWeaponList);
 
         // Set up weaponList for the next tick.
         weaponList = tempWeaponList;
-
-        // Refresh the slots in order to read from them later.
-        if (newWeaponList.Size() != 0)
-        {
-            UpdateCurrentWeaponsArray();
-            SaveCurrentWeaponsToDisk();
-        }
-
-        // Set the slot timers.
-        for (int i = 0; i < newWeaponList.Size(); i++)
-        {
-            // Parse the LSS_Weapons to get the slots
-            for (int j = 0; j < currentWeapons.Size(); j++)
-            {
-                if (currentWeapons[j].Weapon.GetClassName() == newWeaponList[i].GetClassName())
-                {
-                    //Console.printf("Slot: %i", currentWeapons[j].slot);
-                    slotTimers[currentWeapons[j].slot] = 140;
-
-                    // Set the highlighted slot
-                    highlightedSlot = (currentWeapons[j].slot, currentWeapons[j].row);
-                }
-            }
-        }
     }
 
     override void WorldTick()
@@ -750,6 +735,89 @@ class LSS_EventHandler : EventHandler
         }
         // Display the name of the weapon on the bottom of the screen
         currentWeaponsInSlotObject[weaponIndex].DisplayNameTag();
+    }
+
+    /***
+    *   Sets up the fade for whenever a new weapon is picked up
+    */
+    ui void PlayerPickedUpNewWeapon(Array<Weapon> tempWeaponList)
+    {
+        Array<Weapon> newWeaponList;
+
+        // Refresh the inventory
+        UpdateCurrentWeaponsArray();
+        SaveCurrentWeaponsToDisk();
+
+        // Check if a new weapon has been picked up.
+        // If so, then show the slot it is in.
+        for (int i = 0; i < tempWeaponList.Size(); i++)
+        {
+            // Check if every weapon is the same.
+            // If there is a new weapon, then the player had just picked it up.
+            if (weaponList.Find(tempWeaponList[i]) == weaponList.Size() && 
+                tempWeaponList[i].GetClassName() != 'HDIncapWeapon')
+            {
+                //Console.printf("Picked up: %s", tempWeaponList[i].GetClassName());
+                newWeaponList.Push(tempWeaponList[i]);
+            }
+        }
+
+        // Set the slot timers.
+        for (int i = 0; i < newWeaponList.Size(); i++)
+        {
+            // Parse the LSS_Weapons to get the slots
+            for (int j = 0; j < currentWeapons.Size(); j++)
+            {
+                if (currentWeapons[j].Weapon.GetClassName() == newWeaponList[i].GetClassName())
+                {
+                    //Console.printf("Slot: %i", currentWeapons[j].slot);
+                    slotTimers[currentWeapons[j].slot] = (LSS_PickupTimer + LSS_PickupTimerFade) * 35;
+
+                    // Set the highlighted slot
+                    highlightedSlot = (currentWeapons[j].slot, currentWeapons[j].row);
+                }
+            }
+        }
+    }
+
+    /***
+    *   Sets up the fade for whenever a weapon is dropped
+    */
+    ui void PlayerDroppedWeapon(Array<Weapon> tempWeaponList)
+    {
+        Array<Weapon> droppedWeaponList;
+
+        // Check if a weapon has been dropped
+        for (int i = 0; i < weaponList.Size(); i++)
+        {
+            if (tempWeaponList.Find(weaponList[i]) == tempWeaponList.Size() &&
+                weaponList[i].GetClassName() != 'HDIncapWeapon')
+            {
+                droppedWeaponList.Push(weaponList[i]);
+                //Console.printf("Weapon dropped: %s", weaponList[i].GetClassName());
+            }
+        }
+
+        // Set the slot timers.
+        for (int i = 0; i < droppedWeaponList.Size(); i++)
+        {
+            // Parse the LSS_Weapons to get the slots
+            for (int j = 0; j < currentWeapons.Size(); j++)
+            {
+                if (currentWeapons[j].Weapon.GetClassName() == droppedWeaponList[i].GetClassName())
+                {
+                    //Console.printf("Slot: %i", currentWeapons[j].slot);
+                    slotTimers[currentWeapons[j].slot] = (LSS_PickupTimer + LSS_PickupTimerFade) * 35;
+
+                    // Set the highlighted slot
+                    highlightedSlot = (-1, -1);
+                }
+            }
+        }
+
+        // Refresh the inventory
+        UpdateCurrentWeaponsArray();
+        SaveCurrentWeaponsToDisk();
     }
 
     ui void SetColorPreset()

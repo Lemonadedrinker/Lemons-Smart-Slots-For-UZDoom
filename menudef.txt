@@ -6,17 +6,22 @@ AddOptionMenu "OptionsMenu"
 OptionMenu "SlotsOptionsMain"
 {
     Title "Lemon's Smart Slots"
-    StaticText "Weapon Slot Gameplay Settings", 1
+    StaticText "Weapon Slot Menu", 1
     Option "Remember Last Used Weapon per Slot", "LSS_RememberLastWeaponInSlot", "Boolean"
     StaticText ""
     SafeCommand "Reset Saved Slots (Can help with lag)", "event LSS_ResetSlots", "Are you sure?"
     StaticText ""
     StaticText "Weapon Slot Customization", 1
-    Slider "Insert Ghost Alpha", "LSS_GhostAlphaValue", 0, 1, 0.05, 2
-    Slider "Swap Ghost Alpha", "LSS_SwapAlphaValue", 0, 1, 0.05, 2
+    Slider "Editing Menu Alpha", "LSS_AlphaValue", 0, 1, 0.05, 2
     Slider "Cursor Offset", "LSS_CursorOffset", 0, 2, 0.05, 2
     Slider "UI Volume", "LSS_UIVolume", 0, 1, 0.05, 2
     StaticText ""
+    Option "Enable Weapon Pickup Preview", "LSS_UsingWeaponPickupPreview", "Boolean"
+    Option "Preview on Weapon Dropped", "LSS_PreviewOnWeaponDropped", "Boolean", "LSS_UsingWeaponPickupPreview"
+    Slider "Pickup Preview Alpha", "LSS_PickupAlphaValue", 0, 1, 0.05, 2, "LSS_UsingWeaponPickupPreview"
+    Slider "Pickup Preview Timer", "LSS_PickupTimer", 0, 2, 0.1, 1, "LSS_UsingWeaponPickupPreview"
+    Slider "Pickup Preview Fade Timer", "LSS_PickupTimerFade", 0, 2, 0.1, 1, "LSS_UsingWeaponPickupPreview"
+    StaticText""
     SafeCommand "Reset Weapon Slot Customization Settings", "event LSS_ResetSlotCustomizationSettings", "Are you sure?"
     StaticText ""
 

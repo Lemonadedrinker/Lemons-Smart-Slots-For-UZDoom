@@ -10,8 +10,9 @@ extend class LSS_EventHandler
     ui Color innerColorAlt;
     ui Color highlightColor;
     ui Color heldWeaponColor;
-    ui float ghostAlphaValue;
-    ui float swapAlphaValue;
+
+    ui float slotAlphaPercentages[10];
+    ui float targetAlpha; // The target alpha for either editing or pickup fade
 
     ui int scalingFactor;
     ui int boxWidth;
@@ -24,17 +25,17 @@ extend class LSS_EventHandler
 
     override void RenderOverlay(RenderEvent event)
     {
-        bool activeTimer = false;
+        hasActiveTimer = false;
         for (int i = 0; i < 10; i++)
         {
             if (slotTimers[i] > 0)
             {
-                activeTimer = true;
+                hasActiveTimer = true;
                 break;
             }
         }
 
-        if (!isEditing && !activeTimer)
+        if (!isEditing && !hasActiveTimer)
         {
             return;
         }
@@ -57,8 +58,29 @@ extend class LSS_EventHandler
         highlightColor = color(temp.b, temp.g, temp.r);
         temp = LSS_HeldWeaponColor;
         heldWeaponColor = color(temp.b, temp.g, temp.r);
-        ghostAlphaValue = LSS_GhostAlphaValue;
-        swapAlphaValue = LSS_SwapAlphaValue;
+
+        // Set each slot alpha
+        for (int i = 0; i < 10; i++)
+        {
+            if (isEditing)
+            {
+                slotAlphaPercentages[i] = 1.0;
+            }
+            else if (slotTimers[i] > LSS_PickupTimerFade * 35)
+            {
+                // Set it to full alpha
+                slotAlphaPercentages[i] = 1.0;
+            }
+            else
+            {
+                // Set it to fade
+                slotAlphaPercentages[i] = (LSS_PickupTimerFade == 0) ? 0 : (slotTimers[i] / 35.0 / LSS_PickupTimerFade);
+            }
+        }
+
+        // Set the target alpha
+        targetAlpha = (isEditing) ? LSS_AlphaValue : LSS_PickupAlphaValue;
+        
         slotNumberColor = LSS_SlotNumberColor;
         weaponNameColor = LSS_WeaponNameColor;
 
@@ -142,20 +164,20 @@ extend class LSS_EventHandler
         DrawWeaponBoxes();
     }
 
-    private ui void DrawBox(Vector2 origin, int width, int height, int bevel, Color color1, Color color2, float ghostAlphaValue)
+    private ui void DrawBox(Vector2 origin, int width, int height, int bevel, Color color1, Color color2, float slotAlphaValue)
     {
         // Outer square
-        DrawSquare(origin, width, height, color1, ghostAlphaValue);
+        DrawSquare(origin, width, height, color1, slotAlphaValue);
 
         // Inner one, needs an offset
         Vector2 innerOffset = (origin.X, origin.Y);
 
-        DrawSquare(innerOffset, width - 4 * bevel, height - 4 * bevel, color2, ghostAlphaValue);
+        DrawSquare(innerOffset, width - 4 * bevel, height - 4 * bevel, color2, slotAlphaValue);
     }
 
     // Code copied from example at
     // https://zdoom.org/wiki/Classes:Shape2D
-    private ui void DrawSquare(Vector2 origin, int width, int height, Color squareColor, float ghostAlphaValue)
+    private ui void DrawSquare(Vector2 origin, int width, int height, Color squareColor, float slotAlphaValue)
     {
         // Create our square
         let square = new("Shape2D");
@@ -190,7 +212,7 @@ extend class LSS_EventHandler
         // Apply the transformation to our square
         square.SetTransform(transformation);
 
-        Screen.DrawShapeFill(squareColor, ghostAlphaValue, square);
+        Screen.DrawShapeFill(squareColor, slotAlphaValue, square);
     }
 
     private ui void DrawFrame()
@@ -208,7 +230,7 @@ extend class LSS_EventHandler
             color2 = (i % 2 == 0) ? innerColor : innerColorAlt;
 
             // Draw each box for the numbers
-            DrawBox((i * boxWidth + (boxWidth / 2), boxHeight / 4), boxWidth, boxHeight / 2, bevel, color1, color2, 1.0);
+            DrawBox((i * boxWidth + (boxWidth / 2), boxHeight / 4), boxWidth, boxHeight / 2, bevel, color1, color2, slotAlphaPercentages[i] * targetAlpha);
 
             // Digits are 1-9 and 0
             int digit = (i == 9) ? 0 : i + 1;
@@ -220,7 +242,8 @@ extend class LSS_EventHandler
                 boxHeight / 4 - scalingFactor * 7, 
                 ""..(digit),
                 DTA_ScaleX, scalingFactor * 2,
-                DTA_ScaleY, scalingFactor * 2
+                DTA_ScaleY, scalingFactor * 2,
+                DTA_Alpha, slotAlphaPercentages[i]
             );
         }
     }
@@ -307,8 +330,7 @@ extend class LSS_EventHandler
                 }
 
                 // Draw the other slots
-                int alphaValue = (mouseSlot == (currentWeapon.slot, currentWeapon.row)) ? swapAlphaValue : 1;
-                DrawWeaponBox(currentWeapon.slot, currentWeapon.row + rowOffset, currentWeapon, color1, color2, alphaValue);
+                DrawWeaponBox(currentWeapon.slot, currentWeapon.row + rowOffset, currentWeapon, color1, color2);
             }
             // Trying to insert weapon
             else
@@ -399,7 +421,7 @@ extend class LSS_EventHandler
             if (!tryingToSwap)
             {
                 // Draw ghost
-                if (validGhost) DrawWeaponBox(ghostX, ghostY, selectedWeaponObject, color1, color2, ghostAlphaValue);
+                if (validGhost) DrawWeaponBox(ghostX, ghostY, selectedWeaponObject, color1, color2);
 
                 // Draw the weapon on the cursor if there is one
                 DrawWeaponBoxOnCursor(selectedWeaponObject, color1, highlightColor);
@@ -408,7 +430,7 @@ extend class LSS_EventHandler
             else
             {
                 // Ghost on cursor
-                if (validGhost) DrawWeaponBox(ghostX, ghostY, selectedWeaponObject, color1, color2, ghostAlphaValue);
+                if (validGhost) DrawWeaponBox(ghostX, ghostY, selectedWeaponObject, color1, color2);
 
                 // Get the weapon swapping to
                 LSS_Weapon weaponToSwap;
@@ -439,19 +461,19 @@ extend class LSS_EventHandler
                     if (validGhost)
                     {
                         // Valid swap
-                        DrawWeaponBox(slotSelected.X, slotSelected.Y, weaponToSwap, color1, color2, ghostAlphaValue);
+                        DrawWeaponBox(slotSelected.X, slotSelected.Y, weaponToSwap, color1, color2);
                     }
                     else
                     {
                         // Trying to swap into an invalid position
-                        DrawWeaponBoxOnCursor(selectedWeaponObject, color1, color2, ghostAlphaValue);
+                        DrawWeaponBoxOnCursor(selectedWeaponObject, color1, color2);
                     }
                 }
             }
         }
     }
 
-    private ui void DrawWeaponBox(int slot, int row, LSS_Weapon currentWeapon, Color color1, Color color2, float ghostAlphaValue = 1.0)
+    private ui void DrawWeaponBox(int slot, int row, LSS_Weapon currentWeapon, Color color1, Color color2)
     {
         // Draw the box first,
         // then draw the weapon sprite,
@@ -464,20 +486,23 @@ extend class LSS_EventHandler
             bevel,
             color1,
             color2,
-            ghostAlphaValue
+            slotAlphaPercentages[slot] * targetAlpha
         );
 
+        /*
         // Retrieving the sprite texture
         TextureID texture;
         // Flags from: https://zdoom.org/wiki/GetInventoryIcon
         int flags = 1 + 2 + 8 + 16;
-        if (currentWeapon.weapon != null && BaseStatusBar.GetInventoryIcon(currentWeapon.weapon, flags))
+        if (currentWeapon.weapon != null && currentWeapon.weapon.spawnstate.GetSpriteTexture(0).IsValid())
         {
-            texture = BaseStatusBar.GetInventoryIcon(currentWeapon.weapon, flags);
-        }
-        else if (currentWeapon.weapon != null && currentWeapon.weapon.FindState("Spawn", true).GetSpriteTexture(0, 0, (0, 0)).IsValid())
-        {
-            texture = currentWeapon.weapon.FindState("Spawn", true).GetSpriteTexture(0, 0, (0, 0));
+            int frameNumber = -1;
+            String textureName = TexMan.GetName(currentWeapon.weapon.spawnstate.GetSpriteTexture(0));
+            if (textureName.Length() > 4)
+            {
+                frameNumber = textureName.ByteAt(4) - 65;
+            }
+            texture = currentWeapon.weapon.spawnstate.GetSpriteTexture(0, 0, (0, 0), -1, frameNumber);
         }
         else
         {
@@ -508,7 +533,66 @@ extend class LSS_EventHandler
                 true,
                 (boxWidth * slot) + (boxWidth / 2),
                 (boxHeight * (row + 1) - (boxHeight / 10)),
-                DTA_Alpha, ghostAlphaValue,
+                DTA_Alpha, slotAlphaPercentages[slot],
+                DTA_ScaleX, scalingFactor * textureScale,
+                DTA_ScaleY, scalingFactor * textureScale,
+                DTA_CenterOffset, true
+            );
+        }
+        */
+
+        // Retrieving the sprite texture
+        TextureID texture;
+        // Flags from: https://zdoom.org/wiki/GetInventoryIcon
+        int flags = 1 + 2 + 8 + 16;
+        if (currentWeapon.weapon != null)
+        {
+            int frameNumber = -1;
+            
+            Let state = currentWeapon.weapon.spawnstate;
+
+            //while (state.nextstate != null) spawnstate = spawnstate.nextstate;
+
+            String textureName = TexMan.GetName(currentWeapon.weapon.spawnstate.GetSpriteTexture(0, 0, (0, 0), -1, currentWeapon.weapon.frame));
+            
+            //Console.printf("Current sprite: %s frame: %i", textureName, currentWeapon.weapon.frame);
+            
+            if (textureName.Length() > 4)
+            {
+                frameNumber = textureName.ByteAt(4) - 65;
+            }
+            texture = TexMan.CheckForTexture(textureName);
+        }
+        else
+        {
+            texture = TexMan.CheckForTexture("TNT1");
+        }
+
+        //Console.printf("%i", TexMan.CheckRealHeight(texture));
+
+        // Getting the width and real height of the weapon sprites
+        int textureWidth;
+        int textureHeight;
+        [textureWidth, textureHeight] = TexMan.GetSize(texture);
+        textureHeight = TexMan.CheckRealHeight(texture);
+
+        // Evil hardcoded values
+        float textureByWidth = (textureWidth != 0) ? 44.0 / textureWidth : 1.0;
+        float textureByHeight = (textureHeight != 0) ? 24.0 / textureHeight : 1.0;
+
+        // Scale by the smaller value
+        float textureScale = (textureByWidth < textureByHeight) ? textureByWidth : textureByHeight;
+
+        //Console.printf("%f", textureScale);
+
+        if (texture.IsValid())
+        {
+            Screen.DrawTexture(
+                texture,
+                true,
+                (boxWidth * slot) + (boxWidth / 2),
+                (boxHeight * (row + 1) - (boxHeight / 10)),
+                DTA_Alpha, slotAlphaPercentages[slot],
                 DTA_ScaleX, scalingFactor * textureScale,
                 DTA_ScaleY, scalingFactor * textureScale,
                 DTA_CenterOffset, true
@@ -535,14 +619,14 @@ extend class LSS_EventHandler
             slot * boxWidth + 2 * bevel, 
             (row + 1.235) * boxHeight, 
             textToDraw,
-            DTA_Alpha, ghostAlphaValue,
+            DTA_Alpha, slotAlphaPercentages[slot],
             DTA_ScaleX, scalingFactor / 2,
             DTA_ScaleY, scalingFactor / 2,
             DTA_ClipRight, (slot + 1) * boxWidth - 2 * bevel
         );
     }
 
-    private ui void DrawWeaponBoxOnCursor(LSS_Weapon currentWeapon, Color color1, Color color2, float ghostAlphaValue = 1.0)
+    private ui void DrawWeaponBoxOnCursor(LSS_Weapon currentWeapon, Color color1, Color color2)
     {
         // Offset from cursor
         Vector2 offset = (boxWidth / 2, boxHeight / 2) * LSS_CursorOffset;
@@ -558,7 +642,7 @@ extend class LSS_EventHandler
             bevel,
             color1,
             color2,
-            ghostAlphaValue
+            targetAlpha
         );
 
         // Retrieving the sprite texture
@@ -598,7 +682,7 @@ extend class LSS_EventHandler
                 true,
                 MousePosition.X + offset.X,
                 MousePosition.Y - (boxHeight / 10) + offset.Y,
-                DTA_Alpha, ghostAlphaValue,
+                DTA_Alpha, 1,
                 DTA_ScaleX, scalingFactor * textureScale,
                 DTA_ScaleY, scalingFactor * textureScale,
                 DTA_CenterOffset, true
@@ -611,7 +695,7 @@ extend class LSS_EventHandler
             true,
             MousePosition.X + offset.X,
             MousePosition.Y + (boxHeight / 6) + offset.Y,
-            DTA_Alpha, ghostAlphaValue,
+            DTA_Alpha, 1,
             DTA_ScaleX, scalingFactor * 1,
             DTA_ScaleY, scalingFactor * 1
         );
@@ -638,7 +722,7 @@ extend class LSS_EventHandler
             MousePosition.X - (boxWidth / 2) + (2 * bevel) + offset.X, 
             MousePosition.Y + 0.235 * boxHeight + offset.Y, 
             textToDraw,
-            DTA_Alpha, ghostAlphaValue,
+            DTA_Alpha, 1,
             DTA_ScaleX, scalingFactor / 2,
             DTA_ScaleY, scalingFactor / 2,
             DTA_ClipRight, clipRight
