@@ -16,7 +16,6 @@ class LSS_EventHandler : EventHandler
     ui Vector2 highlightedSlot; // Slot to highlight when picking up a new gun
     ui int slotTimers[10];
     ui bool hasActiveTimer; // True if there is at least one timer active
-    ui bool notFirstTick;
 
     ui bool keyDown;
     private bool uninstallingMod;
@@ -26,18 +25,27 @@ class LSS_EventHandler : EventHandler
         SendInterfaceEvent(ConsolePlayer, "LSS_ResetSlotTimers");
     }
 
+    override void WorldThingDied(WorldEvent event)
+    {
+        if (event.Thing == Players[ConsolePlayer].mo)
+        {
+            SendInterfaceEvent(ConsolePlayer, "LSS_ForceNotEditing");
+            SendInterfaceEvent(ConsolePlayer, "LSS_ResetSlotTimers");
+        }
+    }
+
     /**
     *   Forces the UI to close and stop editing
     */
     override void WorldUnloaded(WorldEvent event)
     {   
-        SendNetworkEvent("LSS_NotEditing");
+        SendInterfaceEvent(ConsolePlayer, "LSS_ForceNotEditing");
     }
 
     // Play to UI
     override void InterfaceProcess(ConsoleEvent event)
     {
-        // Reset slot timers, on map load
+        // Reset slot timers
         if (event.Name == "LSS_ResetSlotTimers")
         {
             //Console.printf("Resetting slots");
@@ -46,9 +54,21 @@ class LSS_EventHandler : EventHandler
                 slotTimers[i] = 0;
             }
 
+            hasActiveTimer = false;
+
             slotSelected = (-1, -1);
             hasSlotSelected = false;
             selectedWeaponString = "";
+        }
+        else if (event.Name == "LSS_ForceNotEditing")
+        {
+            isEditing = false;
+
+            slotSelected = (-1, -1);
+            hasSlotSelected = false;
+            selectedWeaponString = "";
+
+            SendNetworkEvent("LSS_NotEditing");
         }
     }
 
@@ -95,7 +115,7 @@ class LSS_EventHandler : EventHandler
         }
         
         // Player tries to edit
-        else if (event.Name == "LSS_Edit")
+        else if (event.Name == "LSS_Edit" && players[ConsolePlayer].health != 0)
         {
             UpdateCurrentWeaponsArray();
             SaveCurrentWeaponsToDisk();
@@ -124,13 +144,6 @@ class LSS_EventHandler : EventHandler
             //String randomWeaponName = currentWeapons[randomWeaponIndex].GetClassName();
 
             //SendNetworkEvent("LSS_WeaponSwitchTo" .. randomWeaponName);
-        }
-
-        // Force the player to stop editing i.e. map change
-        else if (event.Name == "LSS_ForceNotEditing")
-        {
-            isEditing = false;
-            SendNetworkEvent("LSS_NotEditing");
         }
 
         // Reset Slot Settings
@@ -164,13 +177,7 @@ class LSS_EventHandler : EventHandler
         // Hardcoded 27 is ASCII for the esc key
         if (event.KeyChar == 27)
         {
-            isEditing = false;
-
-            slotSelected = (-1, -1);
-            hasSlotSelected = false;
-            selectedWeaponString = "";
-
-            SendNetworkEvent("LSS_NotEditing");
+            SendInterfaceEvent(ConsolePlayer, "LSS_ForceNotEditing");
         }
 
         // Getting mouse inputs
@@ -304,14 +311,8 @@ class LSS_EventHandler : EventHandler
             tempWeaponList.Push(playerWeapon);
         }
 
-        // Janky weird first tick nonsense to avoid
-        if (!notFirstTick)
-        {
-            notFirstTick = true;
-            return;
-        }
         // If the same size, do nothing for performance
-        else if (weaponList.Size() == tempWeaponList.Size()) return;
+        if (weaponList.Size() == tempWeaponList.Size()) return;
         // Picked up a new weapon
         else if (weaponList.Size() < tempWeaponList.Size()) PlayerPickedUpNewWeapon(tempWeaponList);
         // Dropped a weapon
@@ -509,6 +510,8 @@ class LSS_EventHandler : EventHandler
     ui void PlayerRelativeWeaponChange(bool isNextWeapon)
     {
         //Console.printf(players[Consoleplayer].ReadyWeapon.GetClassName());
+
+        if (players[ConsolePlayer].health == 0) return;
         
         // Checks to see if the currently held item is a weapon
         bool isWeapon = false;
@@ -628,6 +631,8 @@ class LSS_EventHandler : EventHandler
     ui void PlayerSlotNumberSelected(int slot)
     {
         //Console.printf(players[Consoleplayer].ReadyWeapon.GetClassName());
+
+        if (players[ConsolePlayer].health == 0) return;
 
         // Check if no weapon held, then set it to an empty string
         if (players[Consoleplayer].ReadyWeapon == null)
@@ -755,7 +760,8 @@ class LSS_EventHandler : EventHandler
             // Check if every weapon is the same.
             // If there is a new weapon, then the player had just picked it up.
             if (weaponList.Find(tempWeaponList[i]) == weaponList.Size() && 
-                tempWeaponList[i].GetClassName() != 'HDIncapWeapon')
+                tempWeaponList[i].GetClassName() != "HDIncapWeapon" &&
+                tempWeaponList[i].GetClassName() != "SelfBandage")
             {
                 //Console.printf("Picked up: %s", tempWeaponList[i].GetClassName());
                 newWeaponList.Push(tempWeaponList[i]);
@@ -790,11 +796,13 @@ class LSS_EventHandler : EventHandler
         // Check if a weapon has been dropped
         for (int i = 0; i < weaponList.Size(); i++)
         {
-            if (tempWeaponList.Find(weaponList[i]) == tempWeaponList.Size() &&
-                weaponList[i].GetClassName() != 'HDIncapWeapon')
+            if (weaponList[i] != null &&
+                tempWeaponList.Find(weaponList[i]) == tempWeaponList.Size() &&
+                weaponList[i].GetClassName() != "HDIncapWeapon" &&
+                weaponList[i].GetClassName() != "SelfBandage")
             {
-                droppedWeaponList.Push(weaponList[i]);
                 //Console.printf("Weapon dropped: %s", weaponList[i].GetClassName());
+                droppedWeaponList.Push(weaponList[i]);
             }
         }
 
