@@ -149,6 +149,13 @@ class LSS_EventHandler : EventHandler
         // Reset Slot Settings
         else if (event.Name == "LSS_ResetSlotCustomizationSettings")
         {
+            CVar.GetCvar("LSS_UsingWeaponPickupPreview", players[ConsolePlayer]).ResetToDefault();
+            CVar.GetCvar("LSS_PreviewOnWeaponDropped", players[ConsolePlayer]).ResetToDefault();
+            CVar.GetCvar("LSS_PickupAlphaValue", players[ConsolePlayer]).ResetToDefault();
+            CVar.GetCvar("LSS_PickupTimer", players[ConsolePlayer]).ResetToDefault();
+            CVar.GetCvar("LSS_PickupTimerFade", players[ConsolePlayer]).ResetToDefault();
+
+            CVar.GetCvar("LSS_AlphaValue", players[ConsolePlayer]).ResetToDefault();
             CVar.GetCvar("LSS_CursorOffset", players[ConsolePlayer]).ResetToDefault();
             CVar.GetCvar("LSS_UIVolume", players[ConsolePlayer]).ResetToDefault();
         }
