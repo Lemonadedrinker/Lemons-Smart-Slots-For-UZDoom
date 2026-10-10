@@ -7,8 +7,9 @@ nosave user Color LSS_InnerColorAlt = "5f 5a 61";
 nosave user Color LSS_HighlightColor = "b6 b1 c2";
 nosave user Color LSS_HeldWeaponColor = "97 8e 9b";
 
-nosave user bool LSS_UsingWeaponPickupPreview = true;
-nosave user bool LSS_PreviewOnWeaponDropped = true;
+nosave user bool LSS_PreviewOnWeaponPickup = true;
+nosave user bool LSS_PreviewOnWeaponDrop = true;
+nosave user bool LSS_PreviewOnWeaponSwap = true;
 nosave user float LSS_PickupAlphaValue = 0.5;
 nosave user float LSS_PickupTimer = 2.0;
 nosave user float LSS_PickupTimerFade = 2.0;

@@ -3,7 +3,6 @@ class LSS_EventHandler : EventHandler
     ui bool isEditing;
     ui Array<LSS_Weapon> currentWeapons; // Stored how the player orders it
     ui String bufferedWeaponString; // The weapon currently being switched to
-    ui String lastSelectedWeapon;
     ui Vector2 MousePosition;
 
     ui bool mouseClicked;
@@ -149,8 +148,8 @@ class LSS_EventHandler : EventHandler
         // Reset Slot Settings
         else if (event.Name == "LSS_ResetSlotCustomizationSettings")
         {
-            CVar.GetCvar("LSS_UsingWeaponPickupPreview", players[ConsolePlayer]).ResetToDefault();
-            CVar.GetCvar("LSS_PreviewOnWeaponDropped", players[ConsolePlayer]).ResetToDefault();
+            CVar.GetCvar("LSS_PreviewOnWeaponPickup", players[ConsolePlayer]).ResetToDefault();
+            CVar.GetCvar("LSS_PreviewOnWeaponDrop", players[ConsolePlayer]).ResetToDefault();
             CVar.GetCvar("LSS_PickupAlphaValue", players[ConsolePlayer]).ResetToDefault();
             CVar.GetCvar("LSS_PickupTimer", players[ConsolePlayer]).ResetToDefault();
             CVar.GetCvar("LSS_PickupTimerFade", players[ConsolePlayer]).ResetToDefault();
@@ -283,7 +282,7 @@ class LSS_EventHandler : EventHandler
 
     override void UiTick()
     {
-        if (!LSS_UsingWeaponPickupPreview) return;
+        if (!LSS_PreviewOnWeaponPickup && !LSS_PreviewOnWeaponDrop) return;
 
         // Decrement the timers if one is active
         if (hasActiveTimer)
@@ -321,9 +320,9 @@ class LSS_EventHandler : EventHandler
         // If the same size, do nothing for performance
         if (weaponList.Size() == tempWeaponList.Size()) return;
         // Picked up a new weapon
-        else if (weaponList.Size() < tempWeaponList.Size()) PlayerPickedUpNewWeapon(tempWeaponList);
+        else if (weaponList.Size() < tempWeaponList.Size() && LSS_PreviewOnWeaponPickup) PlayerPickedUpNewWeapon(tempWeaponList);
         // Dropped a weapon
-        else if (LSS_PreviewOnWeaponDropped) PlayerDroppedWeapon(tempWeaponList);
+        else if (LSS_PreviewOnWeaponDrop) PlayerDroppedWeapon(tempWeaponList);
 
         // Set up weaponList for the next tick.
         weaponList = tempWeaponList;
@@ -516,7 +515,7 @@ class LSS_EventHandler : EventHandler
     */
     ui void PlayerRelativeWeaponChange(bool isNextWeapon)
     {
-        //Console.printf(players[Consoleplayer].ReadyWeapon.GetClassName());
+        Console.printf(players[Consoleplayer].ReadyWeapon.GetClassName());
 
         if (players[ConsolePlayer].health == 0) return;
         
@@ -629,6 +628,18 @@ class LSS_EventHandler : EventHandler
 
         // Display the name of the weapon on the bottom of the screen
         currentWeapons[weaponToSwitchToIndex].weapon.DisplayNameTag();
+
+        // Enable the preview
+        if (LSS_PreviewOnWeaponSwap)
+        {
+            int slotIndex = (currentWeapons[weaponToSwitchToIndex].slot > 0) ? currentWeapons[weaponToSwitchToIndex].slot - 1 : 9;
+            slotIndex = currentWeapons[weaponToSwitchToIndex].slot;
+
+            slotTimers[slotIndex] = (LSS_PickupTimer + LSS_PickupTimerFade) * 35;
+
+            // Set the highlighted slot
+            highlightedSlot = (slotIndex, currentWeapons[weaponToSwitchToIndex].row);
+        }
     }
 
     /***
@@ -747,6 +758,17 @@ class LSS_EventHandler : EventHandler
         }
         // Display the name of the weapon on the bottom of the screen
         currentWeaponsInSlotObject[weaponIndex].DisplayNameTag();
+
+        // Enable the preview
+        if (LSS_PreviewOnWeaponSwap)
+        {
+            int slotIndex = (slot > 0) ? slot - 1 : 9;
+
+            slotTimers[slotIndex] = (LSS_PickupTimer + LSS_PickupTimerFade) * 35;
+
+            // Set the highlighted slot
+            highlightedSlot = (slotIndex, weaponIndex);
+        }
     }
 
     /***

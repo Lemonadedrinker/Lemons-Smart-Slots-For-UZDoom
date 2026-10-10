@@ -475,7 +475,7 @@ extend class LSS_EventHandler
 
     private ui void DrawWeaponBox(int slot, int row, LSS_Weapon currentWeapon, Color color1, Color color2)
     {
-        if (currentWeapon == null) return;
+        if (currentWeapon.weapon == null) return;
         // Draw the box first,
         // then draw the weapon sprite,
         // finally, draw the text over the sprite
