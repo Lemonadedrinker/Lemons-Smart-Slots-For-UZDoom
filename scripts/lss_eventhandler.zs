@@ -606,7 +606,7 @@ class LSS_EventHandler : EventHandler
 
         // Check if only one or zero weapons
         // If so, then do nothing
-        if (currentWeapons.Size() < 2) return;
+        //if (currentWeapons.Size() < 2) return;
 
         // Current weapons is already sorted
         // We need to find the index of the currently held weapon
@@ -659,6 +659,8 @@ class LSS_EventHandler : EventHandler
         //Console.printf("weaponToSwitchToIndex: %i", weaponToSwitchToIndex);
 
         // Finally, switch weapons
+        //Console.Printf(currentWeapons[currentWeaponIndex].weapon.GetClassName());
+        bufferedWeaponString = currentWeapons[weaponToSwitchToIndex].weapon.GetClassName();
         // Only do stuff if it's a different weapon
         if (players[ConsolePlayer].ReadyWeapon != null &&
             players[ConsolePlayer].ReadyWeapon.GetClassName() != bufferedWeaponString)
@@ -666,8 +668,6 @@ class LSS_EventHandler : EventHandler
             // Set the last used weapon
             lastUsedWeapon = players[ConsolePlayer].ReadyWeapon;
 
-            //Console.Printf(currentWeapons[currentWeaponIndex].weapon.GetClassName());
-            bufferedWeaponString = currentWeapons[weaponToSwitchToIndex].weapon.GetClassName();
             SendNetworkEvent("LSS_WeaponSwitchTo"..currentWeapons[weaponToSwitchToIndex].weapon.GetClassName());
 
             // Display the name of the weapon on the bottom of the screen
@@ -860,17 +860,21 @@ class LSS_EventHandler : EventHandler
             }
         }
 
-        if (hasLastUsedWeapon)
-        {
-            // Send to network
-            SendNetworkEvent("LSS_WeaponSwitchTo"..lastUsedWeapon.GetClassName());
+        if (!hasLastUsedWeapon) return;
 
-            // Display the name of the weapon on the bottom of the screen
-            currentWeapons[weaponIndex].weapon.DisplayNameTag();
+        // Send to network
+        SendNetworkEvent("LSS_WeaponSwitchTo"..lastUsedWeapon.GetClassName());
 
-            // Set to held weapon
-            lastUsedWeapon = players[ConsolePlayer].ReadyWeapon;
-        }
+        // Display the name of the weapon on the bottom of the screen
+        currentWeapons[weaponIndex].weapon.DisplayNameTag();
+
+        // Set to held weapon
+        lastUsedWeapon = players[ConsolePlayer].ReadyWeapon;
+
+        // Set the fade
+        slotTimers[currentWeapons[weaponIndex].slot] = (LSS_PreviewTimer + LSS_PreviewTimerFade) * 35;
+        // Set the highlighted slot
+        highlightedSlot = (currentWeapons[weaponIndex].slot, currentWeapons[weaponIndex].row);
     }
 
     /***
