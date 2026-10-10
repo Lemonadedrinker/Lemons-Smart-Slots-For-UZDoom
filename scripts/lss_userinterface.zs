@@ -475,6 +475,7 @@ extend class LSS_EventHandler
 
     private ui void DrawWeaponBox(int slot, int row, LSS_Weapon currentWeapon, Color color1, Color color2)
     {
+        if (currentWeapon == null) return;
         // Draw the box first,
         // then draw the weapon sprite,
         // finally, draw the text over the sprite
@@ -489,84 +490,69 @@ extend class LSS_EventHandler
             slotAlphaPercentages[slot] * targetAlpha
         );
 
-        /*
         // Retrieving the sprite texture
-        TextureID texture;
+        TextureID texture = TexMan.CheckForTexture("TNT1A0");
+        String textureName = "TNT1A0";
+        int frameNumber;
+        
+        State weaponState;
+        weaponState = currentWeapon.weapon.spawnstate;
         // Flags from: https://zdoom.org/wiki/GetInventoryIcon
         int flags = 1 + 2 + 8 + 16;
-        if (currentWeapon.weapon != null && currentWeapon.weapon.spawnstate.GetSpriteTexture(0).IsValid())
+
+        if (currentWeapon.weapon.Icon.IsValid())
         {
-            int frameNumber = -1;
-            String textureName = TexMan.GetName(currentWeapon.weapon.spawnstate.GetSpriteTexture(0));
+            texture = currentWeapon.weapon.Icon;
+        }
+        
+        if (currentWeapon.weapon.spawnstate.GetSpriteTexture(0).IsValid() &&
+            TexMan.GetName(texture) == "TNT1A0")
+        {
+            frameNumber = -1;
+            textureName = TexMan.GetName(currentWeapon.weapon.spawnstate.GetSpriteTexture(0));
             if (textureName.Length() > 4)
             {
                 frameNumber = textureName.ByteAt(4) - 65;
             }
             texture = currentWeapon.weapon.spawnstate.GetSpriteTexture(0, 0, (0, 0), -1, frameNumber);
         }
-        else
-        {
-            texture = TexMan.CheckForTexture("TNT1");
-        }
 
-        //Console.printf("%i", TexMan.CheckRealHeight(texture));
-
-        // Getting the width and real height of the weapon sprites
-        int textureWidth;
-        int textureHeight;
-        [textureWidth, textureHeight] = TexMan.GetSize(texture);
-        textureHeight = TexMan.CheckRealHeight(texture);
-
-        // Evil hardcoded values
-        float textureByWidth = (textureWidth != 0) ? 44.0 / textureWidth : 1.0;
-        float textureByHeight = (textureHeight != 0) ? 24.0 / textureHeight : 1.0;
-
-        // Scale by the smaller value
-        float textureScale = (textureByWidth < textureByHeight) ? textureByWidth : textureByHeight;
-
-        //Console.printf("%f", textureScale);
-
-        if (texture.IsValid())
-        {
-            Screen.DrawTexture(
-                texture,
-                true,
-                (boxWidth * slot) + (boxWidth / 2),
-                (boxHeight * (row + 1) - (boxHeight / 10)),
-                DTA_Alpha, slotAlphaPercentages[slot],
-                DTA_ScaleX, scalingFactor * textureScale,
-                DTA_ScaleY, scalingFactor * textureScale,
-                DTA_CenterOffset, true
-            );
-        }
-        */
-
-        // Retrieving the sprite texture
-        TextureID texture;
-        // Flags from: https://zdoom.org/wiki/GetInventoryIcon
-        int flags = 1 + 2 + 8 + 16;
-        if (currentWeapon.weapon != null)
+        //Console.printf("Current sprite: %s frame: %i", TexMan.GetName(texture), currentWeapon.weapon.frame);
+        // Alternate method of getting the texture
+        if (TexMan.GetName(texture) == "TNT1A0")
         {
             int frameNumber = -1;
-            
-            Let state = currentWeapon.weapon.spawnstate;
 
-            //while (state.nextstate != null) spawnstate = spawnstate.nextstate;
+            int count = 100;
+            while (weaponState.nextstate != null && TexMan.GetName(weaponState.GetSpriteTexture(0)) != "TNT1" && count > 0)
+            {
+                count--;
+                
+                // If the next sprite is NOT TNT1
+                if (weaponState.nextState.sprite != 0)
+                {
+                    weaponState = weaponState.nextstate;
+                }
+                else
+                {
+                    break;
+                }
+            }
 
-            String textureName = TexMan.GetName(currentWeapon.weapon.spawnstate.GetSpriteTexture(0, 0, (0, 0), -1, currentWeapon.weapon.frame));
+            textureName = TexMan.GetName(weaponState.GetSpriteTexture(0, 0, (0,0), -1, -1));
+
             
             //Console.printf("Current sprite: %s frame: %i", textureName, currentWeapon.weapon.frame);
+            //Console.printf("Sprite: %i", weaponState.sprite);
             
             if (textureName.Length() > 4)
             {
                 frameNumber = textureName.ByteAt(4) - 65;
             }
-            texture = TexMan.CheckForTexture(textureName);
+            texture = TexMan.CheckForTexture(textureName, TexMan.TYPE_SPRITE);
         }
-        else
-        {
-            texture = TexMan.CheckForTexture("TNT1");
-        }
+
+        //Console.printf("Texture name: %s", textureName);
 
         //Console.printf("%i", TexMan.CheckRealHeight(texture));
 
