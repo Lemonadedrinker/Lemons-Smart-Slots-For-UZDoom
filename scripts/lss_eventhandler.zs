@@ -3,6 +3,7 @@ class LSS_EventHandler : EventHandler
     ui bool isEditing;
     ui Array<LSS_Weapon> currentWeapons; // Stored how the player orders it
     ui String bufferedWeaponString; // The weapon currently being switched to
+    ui Weapon lastUsedWeapon; // Used to swap to the previous weapon
     ui Vector2 MousePosition;
 
     ui bool mouseClicked;
@@ -111,6 +112,22 @@ class LSS_EventHandler : EventHandler
             SaveCurrentWeaponsToDisk();
 
             PlayerSlotNumberSelected(slot);
+        }
+
+        // Player switches to the previous weapon
+        else if (event.Name == "LSS_LastWeapon")
+        {
+            if (lastUsedWeapon == null)
+            {
+                //Console.printf("No last used weapon!");
+                return;
+            }
+
+            //Console.printf("Last used weapon: %s", lastUsedWeapon.GetClassName());
+            UpdateCurrentWeaponsArray();
+            SaveCurrentWeaponsToDisk();
+
+            PlayerLastWeaponChange();
         }
         
         // Player tries to edit
@@ -642,12 +659,20 @@ class LSS_EventHandler : EventHandler
         //Console.printf("weaponToSwitchToIndex: %i", weaponToSwitchToIndex);
 
         // Finally, switch weapons
-        //Console.Printf(currentWeapons[currentWeaponIndex].weapon.GetClassName());
-        bufferedWeaponString = currentWeapons[weaponToSwitchToIndex].weapon.GetClassName();
-        SendNetworkEvent("LSS_WeaponSwitchTo"..currentWeapons[weaponToSwitchToIndex].weapon.GetClassName());
+        // Only do stuff if it's a different weapon
+        if (players[ConsolePlayer].ReadyWeapon != null &&
+            players[ConsolePlayer].ReadyWeapon.GetClassName() != bufferedWeaponString)
+        {
+            // Set the last used weapon
+            lastUsedWeapon = players[ConsolePlayer].ReadyWeapon;
 
-        // Display the name of the weapon on the bottom of the screen
-        currentWeapons[weaponToSwitchToIndex].weapon.DisplayNameTag();
+            //Console.Printf(currentWeapons[currentWeaponIndex].weapon.GetClassName());
+            bufferedWeaponString = currentWeapons[weaponToSwitchToIndex].weapon.GetClassName();
+            SendNetworkEvent("LSS_WeaponSwitchTo"..currentWeapons[weaponToSwitchToIndex].weapon.GetClassName());
+
+            // Display the name of the weapon on the bottom of the screen
+            currentWeapons[weaponToSwitchToIndex].weapon.DisplayNameTag();
+        }
 
         // Enable the preview
         if (LSS_PreviewOnWeaponSwap)
@@ -744,6 +769,7 @@ class LSS_EventHandler : EventHandler
 
         // If the weapon is in the slot already, then switch to the next weapon (if there is one)
         int weaponIndex = 0;
+        String networkString;
         if (inCustomSlot)
         {
             // Do nothing if there is only one weapon
@@ -782,17 +808,29 @@ class LSS_EventHandler : EventHandler
 
             // Finally switch weapons
             bufferedWeaponString = newWeaponString;
-            SendNetworkEvent("LSS_WeaponSwitchTo"..newWeaponString);
+            networkString = "LSS_WeaponSwitchTo"..newWeaponString;
         }
         // If not, then switch to the first weapon in the new slot
         else
         {
             //Console.printf(currentWeaponsInSlotString[0]);
             bufferedWeaponString = currentWeaponsInSlotString[0];
-            SendNetworkEvent("LSS_WeaponSwitchTo"..currentWeaponsInSlotString[0]);
+            networkString = "LSS_WeaponSwitchTo"..currentWeaponsInSlotString[0];
         }
-        // Display the name of the weapon on the bottom of the screen
-        currentWeaponsInSlotObject[weaponIndex].DisplayNameTag();
+
+        // Only do stuff if it's a different weapon
+        if (players[ConsolePlayer].ReadyWeapon != null &&
+            players[ConsolePlayer].ReadyWeapon.GetClassName() != bufferedWeaponString)
+        {
+            // Set the last used weapon
+            lastUsedWeapon = players[ConsolePlayer].ReadyWeapon;
+
+            // Send the network event to everyone
+            SendNetworkEvent(networkString);
+
+            // Display the name of the weapon on the bottom of the screen
+            currentWeaponsInSlotObject[weaponIndex].DisplayNameTag();
+        }
 
         // Enable the preview
         if (LSS_PreviewOnWeaponSwap)
@@ -803,6 +841,35 @@ class LSS_EventHandler : EventHandler
 
             // Set the highlighted slot
             highlightedSlot = (slotIndex, weaponIndex);
+        }
+    }
+
+    ui void PlayerLastWeaponChange()
+    {
+        bool hasLastUsedWeapon = false;
+        int weaponIndex;
+
+        for (int i = 0; i < currentWeapons.Size(); i++)
+        {
+            if (currentWeapons[i] != null &&
+                currentWeapons[i].weapon.GetClassName() == lastUsedWeapon.GetClassName())
+            {
+                hasLastUsedWeapon = true;
+                weaponIndex = i;
+                break;
+            }
+        }
+
+        if (hasLastUsedWeapon)
+        {
+            // Send to network
+            SendNetworkEvent("LSS_WeaponSwitchTo"..lastUsedWeapon.GetClassName());
+
+            // Display the name of the weapon on the bottom of the screen
+            currentWeapons[weaponIndex].weapon.DisplayNameTag();
+
+            // Set to held weapon
+            lastUsedWeapon = players[ConsolePlayer].ReadyWeapon;
         }
     }
 
@@ -873,9 +940,15 @@ class LSS_EventHandler : EventHandler
         // Set the slot timers.
         for (int i = 0; i < droppedWeaponList.Size(); i++)
         {
+            // Null checks
+            if (droppedWeaponList[i] == null) continue;
+
             // Parse the LSS_Weapons to get the slots
             for (int j = 0; j < currentWeapons.Size(); j++)
             {
+                // Null checks
+                if (currentWeapons[j] == null) continue;
+
                 if (currentWeapons[j].Weapon.GetClassName() == droppedWeaponList[i].GetClassName())
                 {
                     //Console.printf("Slot: %i", currentWeapons[j].slot);

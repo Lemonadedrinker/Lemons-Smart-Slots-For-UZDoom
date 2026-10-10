@@ -412,7 +412,9 @@ extend class LSS_EventHandler
             color2 = (ghostX % 2 == 0) ? innerColor : innerColorAlt;
 
             // Border if weapon is held
-            if (players[Consoleplayer].ReadyWeapon != null && players[Consoleplayer].ReadyWeapon.GetClassName() == selectedWeaponObject.weapon.GetClassName())
+            if (players[Consoleplayer].ReadyWeapon != null &&
+                selectedWeaponObject.weapon != null &&
+                players[Consoleplayer].ReadyWeapon.GetClassName() == selectedWeaponObject.weapon.GetClassName())
             {
                 color1 = heldWeaponColor;
             }

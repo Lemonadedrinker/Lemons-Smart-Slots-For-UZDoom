@@ -47,6 +47,8 @@ OptionMenu "SlotsOptionsMain"
 
     StaticText "Keybinds", 1
     Control "Edit Slots", "event LSS_Edit"
+    Control "Last Used Weapon", "event LSS_LastWeapon"
+    StaticText ""
     Control "Next Weapon", "event LSS_NextWeapon"
     Control "Previous Weapon", "event LSS_PrevWeapon"
     StaticText ""
