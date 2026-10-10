@@ -150,13 +150,16 @@ class LSS_EventHandler : EventHandler
         {
             CVar.GetCvar("LSS_PreviewOnWeaponPickup", players[ConsolePlayer]).ResetToDefault();
             CVar.GetCvar("LSS_PreviewOnWeaponDrop", players[ConsolePlayer]).ResetToDefault();
-            CVar.GetCvar("LSS_PickupAlphaValue", players[ConsolePlayer]).ResetToDefault();
-            CVar.GetCvar("LSS_PickupTimer", players[ConsolePlayer]).ResetToDefault();
-            CVar.GetCvar("LSS_PickupTimerFade", players[ConsolePlayer]).ResetToDefault();
+            CVar.GetCvar("LSS_PreviewOnWeaponSwap", players[ConsolePlayer]).ResetToDefault();
+            CVar.GetCvar("LSS_PreviewOnWeaponSwapSlotEmpty", players[ConsolePlayer]).ResetToDefault();
 
             CVar.GetCvar("LSS_AlphaValue", players[ConsolePlayer]).ResetToDefault();
             CVar.GetCvar("LSS_CursorOffset", players[ConsolePlayer]).ResetToDefault();
             CVar.GetCvar("LSS_UIVolume", players[ConsolePlayer]).ResetToDefault();
+
+            CVar.GetCvar("LSS_PreviewAlphaValue", players[ConsolePlayer]).ResetToDefault();
+            CVar.GetCvar("LSS_PreviewTimer", players[ConsolePlayer]).ResetToDefault();
+            CVar.GetCvar("LSS_PreviewTimerFade", players[ConsolePlayer]).ResetToDefault();
         }
         // Set Color Preset
         else if (event.Name == "LSS_SetPreset")
@@ -515,7 +518,7 @@ class LSS_EventHandler : EventHandler
     */
     ui void PlayerRelativeWeaponChange(bool isNextWeapon)
     {
-        Console.printf(players[Consoleplayer].ReadyWeapon.GetClassName());
+        //Console.printf(players[Consoleplayer].ReadyWeapon.GetClassName());
 
         if (players[ConsolePlayer].health == 0) return;
         
@@ -538,10 +541,27 @@ class LSS_EventHandler : EventHandler
 
         // The player's weapon being switched to
         // If empty, fill with the held weapon
-        if (bufferedWeaponString == "" && players[Consoleplayer].ReadyWeapon != null)
+        if (players[Consoleplayer].ReadyWeapon != null && bufferedWeaponString == "")
         {
             bufferedWeaponString = players[Consoleplayer].ReadyWeapon.GetClassName();
         }
+        // Check if buffered weapon is no longer in the inventory, then set to heldweapon
+        else if (players[Consoleplayer].ReadyWeapon != null)
+        {
+            bool inInventory = false;
+            // Iterate through all weapons
+            for (int i = 0; i < currentWeapons.Size(); i++)
+            {
+                if (currentWeapons[i].weapon.GetClassName() == bufferedWeaponString)
+                {
+                    inInventory = true;
+                    break;
+                }
+            }
+
+            if (!inInventory) bufferedWeaponString = players[Consoleplayer].ReadyWeapon.GetClassName();
+        }
+
         // If not a weapon, then switch back to the last held weapon and end the function
         if (!isWeapon)
         {
@@ -635,7 +655,7 @@ class LSS_EventHandler : EventHandler
             int slotIndex = (currentWeapons[weaponToSwitchToIndex].slot > 0) ? currentWeapons[weaponToSwitchToIndex].slot - 1 : 9;
             slotIndex = currentWeapons[weaponToSwitchToIndex].slot;
 
-            slotTimers[slotIndex] = (LSS_PickupTimer + LSS_PickupTimerFade) * 35;
+            slotTimers[slotIndex] = (LSS_PreviewTimer + LSS_PreviewTimerFade) * 35;
 
             // Set the highlighted slot
             highlightedSlot = (slotIndex, currentWeapons[weaponToSwitchToIndex].row);
@@ -705,7 +725,22 @@ class LSS_EventHandler : EventHandler
         }
 
         // If no weapons in the slot, do nothing
-        if (currentWeaponsInSlotString.Size() == 0) return;
+        if (currentWeaponsInSlotString.Size() == 0)
+        {
+            // Show the empty preview if needed
+            if (LSS_PreviewOnWeaponSwap && LSS_PreviewOnWeaponSwapSlotEmpty)
+            {
+                int slotIndex = (slot > 0) ? slot - 1 : 9;
+
+                slotTimers[slotIndex] = (LSS_PreviewTimer + LSS_PreviewTimerFade) * 35;
+
+                // Highlight nothing
+                highlightedSlot = (-1, -1);
+            }
+
+            // Do nothing
+            return;
+        }
 
         // If the weapon is in the slot already, then switch to the next weapon (if there is one)
         int weaponIndex = 0;
@@ -764,7 +799,7 @@ class LSS_EventHandler : EventHandler
         {
             int slotIndex = (slot > 0) ? slot - 1 : 9;
 
-            slotTimers[slotIndex] = (LSS_PickupTimer + LSS_PickupTimerFade) * 35;
+            slotTimers[slotIndex] = (LSS_PreviewTimer + LSS_PreviewTimerFade) * 35;
 
             // Set the highlighted slot
             highlightedSlot = (slotIndex, weaponIndex);
@@ -806,7 +841,7 @@ class LSS_EventHandler : EventHandler
                 if (currentWeapons[j].Weapon.GetClassName() == newWeaponList[i].GetClassName())
                 {
                     //Console.printf("Slot: %i", currentWeapons[j].slot);
-                    slotTimers[currentWeapons[j].slot] = (LSS_PickupTimer + LSS_PickupTimerFade) * 35;
+                    slotTimers[currentWeapons[j].slot] = (LSS_PreviewTimer + LSS_PreviewTimerFade) * 35;
 
                     // Set the highlighted slot
                     highlightedSlot = (currentWeapons[j].slot, currentWeapons[j].row);
@@ -844,7 +879,7 @@ class LSS_EventHandler : EventHandler
                 if (currentWeapons[j].Weapon.GetClassName() == droppedWeaponList[i].GetClassName())
                 {
                     //Console.printf("Slot: %i", currentWeapons[j].slot);
-                    slotTimers[currentWeapons[j].slot] = (LSS_PickupTimer + LSS_PickupTimerFade) * 35;
+                    slotTimers[currentWeapons[j].slot] = (LSS_PreviewTimer + LSS_PreviewTimerFade) * 35;
 
                     // Set the highlighted slot
                     highlightedSlot = (-1, -1);

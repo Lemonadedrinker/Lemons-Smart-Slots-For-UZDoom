@@ -66,7 +66,7 @@ extend class LSS_EventHandler
             {
                 slotAlphaPercentages[i] = 1.0;
             }
-            else if (slotTimers[i] > LSS_PickupTimerFade * 35)
+            else if (slotTimers[i] > LSS_PreviewTimerFade * 35)
             {
                 // Set it to full alpha
                 slotAlphaPercentages[i] = 1.0;
@@ -74,12 +74,12 @@ extend class LSS_EventHandler
             else
             {
                 // Set it to fade
-                slotAlphaPercentages[i] = (LSS_PickupTimerFade == 0) ? 0 : (slotTimers[i] / 35.0 / LSS_PickupTimerFade);
+                slotAlphaPercentages[i] = (LSS_PreviewTimerFade == 0) ? 0 : (slotTimers[i] / 35.0 / LSS_PreviewTimerFade);
             }
         }
 
         // Set the target alpha
-        targetAlpha = (isEditing) ? LSS_AlphaValue : LSS_PickupAlphaValue;
+        targetAlpha = (isEditing) ? LSS_AlphaValue : LSS_PreviewAlphaValue;
         
         slotNumberColor = LSS_SlotNumberColor;
         weaponNameColor = LSS_WeaponNameColor;

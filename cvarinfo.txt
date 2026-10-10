@@ -10,11 +10,12 @@ nosave user Color LSS_HeldWeaponColor = "97 8e 9b";
 nosave user bool LSS_PreviewOnWeaponPickup = true;
 nosave user bool LSS_PreviewOnWeaponDrop = true;
 nosave user bool LSS_PreviewOnWeaponSwap = true;
-nosave user float LSS_PickupAlphaValue = 0.5;
-nosave user float LSS_PickupTimer = 2.0;
-nosave user float LSS_PickupTimerFade = 2.0;
+nosave user bool LSS_PreviewOnWeaponSwapSlotEmpty = true;
+nosave user float LSS_PreviewAlphaValue = 0.1;
+nosave user float LSS_PreviewTimer = 1.0;
+nosave user float LSS_PreviewTimerFade = 1.0;
 
-nosave user float LSS_AlphaValue = 0.8;
+nosave user float LSS_AlphaValue = 0.4;
 nosave user float LSS_CursorOffset = 1.2;
 nosave user float LSS_UIVolume = 1.0;
 

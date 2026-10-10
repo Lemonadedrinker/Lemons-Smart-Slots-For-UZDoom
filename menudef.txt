@@ -16,11 +16,13 @@ OptionMenu "SlotsOptionsMain"
     Slider "Cursor Offset", "LSS_CursorOffset", 0, 2, 0.05, 2
     Slider "UI Volume", "LSS_UIVolume", 0, 1, 0.05, 2
     StaticText ""
-    Option "Enable Weapon Pickup Preview", "LSS_PreviewOnWeaponPickup", "Boolean"
-    Option "Preview on Weapon Dropped", "LSS_PreviewOnWeaponDrop", "Boolean"
-    Slider "Pickup Preview Alpha", "LSS_PickupAlphaValue", 0, 1, 0.05, 2
-    Slider "Pickup Preview Timer", "LSS_PickupTimer", 0, 2, 0.1, 1
-    Slider "Pickup Preview Fade Timer", "LSS_PickupTimerFade", 0, 2, 0.1, 1
+    Option "Preview on Weapon Pickup", "LSS_PreviewOnWeaponPickup", "Boolean"
+    Option "Preview on Weapon Drop", "LSS_PreviewOnWeaponDrop", "Boolean"
+    Option "Preview on Weapon Swap", "LSS_PreviewOnWeaponSwap", "Boolean"
+    Option "Preview on Weapon Swap (Empty Slot)", "LSS_PreviewOnWeaponSwapSlotEmpty", "Boolean", "LSS_PreviewOnWeaponSwap"
+    Slider "Pickup Preview Alpha", "LSS_PreviewAlphaValue", 0, 1, 0.05, 2
+    Slider "Pickup Preview Timer", "LSS_PreviewTimer", 0, 2, 0.1, 1
+    Slider "Pickup Preview Fade Timer", "LSS_PreviewTimerFade", 0, 2, 0.1, 1
     StaticText""
     SafeCommand "Reset Weapon Slot Customization Settings", "event LSS_ResetSlotCustomizationSettings", "Are you sure?"
     StaticText ""
