@@ -10,6 +10,8 @@ There are also keys for next and previous weapons (usually bound to the scroll w
 
 Many of the settings like the colors, alpha/transparency, and previews are customizable and/or toggleable!
 
+Installing mid-map requires a level change!
+
 ## Addons
 [Icon Addon for Hideous Destructor](https://github.com/Lemonadedrinker/Lemons-Smart-Slots-Icon-Addon-For-HDest), which shows every HDest weapon frame and variant.
 
