@@ -29,5 +29,5 @@ LSS shows pickup and drop previews! (Both toggleable!)
 ![pickupdroppreview](previews/pickupdroppreview.jpg)
 The shotgun (slot 3) was picked up, and the vulcanette (slot 4) was dropped.
 
-## Known issues:
-- On Mac, there may be lag with the Vulkan renderer, which can be fixed by switching to OpenGL.
+## Credits:
+Thank you to [mickromash](https://github.com/mickromash) for [their original mod](https://github.com/mickromash/CustomSlots) this was inspired by.
