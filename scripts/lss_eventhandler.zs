@@ -23,6 +23,17 @@ class LSS_EventHandler : EventHandler
     override void WorldLoaded(WorldEvent event)
     {
         SendInterfaceEvent(ConsolePlayer, "LSS_ResetSlotTimers");
+
+        // Check if Icon Addon is installed
+        // If so, delete the main event handler
+        String className = "LSS_IconAddon";
+        Class<EventHandler> cls = className;
+
+        // If icon addon installed, AND main event handler, then delete main
+        if (cls && GetClassName() == "LSS_EventHandler")
+        {
+            uninstallingMod = true;
+        }
     }
 
     override void WorldThingDied(WorldEvent event)

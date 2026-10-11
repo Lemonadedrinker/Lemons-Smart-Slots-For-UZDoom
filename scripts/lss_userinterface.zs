@@ -492,67 +492,10 @@ extend class LSS_EventHandler
             slotAlphaPercentages[slot] * targetAlpha
         );
 
-        // Retrieving the sprite texture
-        TextureID texture = TexMan.CheckForTexture("TNT1A0");
-        String textureName = "TNT1A0";
-        int frameNumber;
-        
-        State weaponState;
-        weaponState = currentWeapon.weapon.spawnstate;
-        // Flags from: https://zdoom.org/wiki/GetInventoryIcon
-        int flags = 1 + 2 + 8 + 16;
-
-        if (currentWeapon.weapon.Icon.IsValid())
-        {
-            texture = currentWeapon.weapon.Icon;
-        }
-        
-        if (currentWeapon.weapon.spawnstate.GetSpriteTexture(0).IsValid() &&
-            TexMan.GetName(texture) == "TNT1A0")
-        {
-            frameNumber = -1;
-            textureName = TexMan.GetName(currentWeapon.weapon.spawnstate.GetSpriteTexture(0));
-            if (textureName.Length() > 4)
-            {
-                frameNumber = textureName.ByteAt(4) - 65;
-            }
-            texture = currentWeapon.weapon.spawnstate.GetSpriteTexture(0, 0, (0, 0), -1, frameNumber);
-        }
-
-        //Console.printf("Current sprite: %s frame: %i", TexMan.GetName(texture), currentWeapon.weapon.frame);
-        // Alternate method of getting the texture
-        if (TexMan.GetName(texture) == "TNT1A0")
-        {
-            int frameNumber = -1;
-
-            int count = 100;
-            while (weaponState.nextstate != null && TexMan.GetName(weaponState.GetSpriteTexture(0)) != "TNT1" && count > 0)
-            {
-                count--;
-                
-                // If the next sprite is NOT TNT1
-                if (weaponState.nextState.sprite != 0)
-                {
-                    weaponState = weaponState.nextstate;
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            textureName = TexMan.GetName(weaponState.GetSpriteTexture(0, 0, (0,0), -1, -1));
-
-            
-            //Console.printf("Current sprite: %s frame: %i", textureName, currentWeapon.weapon.frame);
-            //Console.printf("Sprite: %i", weaponState.sprite);
-            
-            if (textureName.Length() > 4)
-            {
-                frameNumber = textureName.ByteAt(4) - 65;
-            }
-            texture = TexMan.CheckForTexture(textureName, TexMan.TYPE_SPRITE);
-        }
+        TextureID texture;
+        // Gets the texture with the virtual function or
+        // with an overridden function if an addon is installed.
+        if (!texture.IsValid()) texture = GetTexture(currentWeapon);
 
         //Console.printf("Texture name: %s", textureName);
 
@@ -1032,5 +975,72 @@ extend class LSS_EventHandler
         // Move the second weapon
         ReplaceSlot(start.X, start.Y);
         return true;
+    }
+
+    virtual ui TextureID GetTexture(LSS_Weapon currentWeapon)
+    {
+        // Retrieving the sprite texture
+        TextureID texture = TexMan.CheckForTexture("TNT1A0");
+        String textureName = "TNT1A0";
+        int frameNumber;
+        
+        State weaponState;
+        weaponState = currentWeapon.weapon.spawnstate;
+        // Flags from: https://zdoom.org/wiki/GetInventoryIcon
+        int flags = 1 + 2 + 8 + 16;
+
+        if (currentWeapon.weapon.Icon.IsValid())
+        {
+            texture = currentWeapon.weapon.Icon;
+        }
+        
+        if (currentWeapon.weapon.spawnstate.GetSpriteTexture(0).IsValid() &&
+            TexMan.GetName(texture) == "TNT1A0")
+        {
+            frameNumber = -1;
+            textureName = TexMan.GetName(currentWeapon.weapon.spawnstate.GetSpriteTexture(0));
+            if (textureName.Length() > 4)
+            {
+                frameNumber = textureName.ByteAt(4) - 65;
+            }
+            texture = currentWeapon.weapon.spawnstate.GetSpriteTexture(0, 0, (0, 0), -1, frameNumber);
+        }
+
+        //Console.printf("Current sprite: %s frame: %i", TexMan.GetName(texture), currentWeapon.weapon.frame);
+        // Alternate method of getting the texture
+        if (TexMan.GetName(texture) == "TNT1A0")
+        {
+            int frameNumber = -1;
+
+            int count = 100;
+            while (weaponState.nextstate != null && TexMan.GetName(weaponState.GetSpriteTexture(0)) != "TNT1" && count > 0)
+            {
+                count--;
+                
+                // If the next sprite is NOT TNT1
+                if (weaponState.nextState.sprite != 0)
+                {
+                    weaponState = weaponState.nextstate;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            textureName = TexMan.GetName(weaponState.GetSpriteTexture(0, 0, (0,0), -1, -1));
+
+            
+            //Console.printf("Current sprite: %s frame: %i", textureName, currentWeapon.weapon.frame);
+            //Console.printf("Sprite: %i", weaponState.sprite);
+            
+            if (textureName.Length() > 4)
+            {
+                frameNumber = textureName.ByteAt(4) - 65;
+            }
+            texture = TexMan.CheckForTexture(textureName, TexMan.TYPE_SPRITE);
+        }
+
+        return texture;
     }
 }
