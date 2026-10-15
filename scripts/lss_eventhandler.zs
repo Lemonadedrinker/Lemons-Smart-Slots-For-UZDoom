@@ -349,7 +349,7 @@ class LSS_EventHandler : EventHandler
             cvar = CVar.GetCVar("LSS_NetSlot"..currentSlot, players[playerToUpdate]);
 
             cvar.SetString(cvarData);
-            Console.printf(cvarData);
+            //Console.printf(cvarData);
             //Console.printf("CVar data: %s", CVar.GetCVar("LSS_NetSlot"..currentSlot, players[playerToUpdate]).GetString());
         }
         else if (event.Name.Left(7) == "LSS_???")
@@ -692,6 +692,7 @@ class LSS_EventHandler : EventHandler
 
             for (int i = 0; i < 10; i++)
             {
+                Console.printf("Slot %i: %s", i, netSlots[i]);
                 SendNetworkEvent("LSS_UpdateNetSlot"..netSlots[i], i, playerIndex);
             }
             //Console.printf("LSS_UpdateNetSlotsNum"..playerIndex);
