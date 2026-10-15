@@ -1,6 +1,6 @@
 class LSS_EventHandler : EventHandler
 {
-    ui bool isEditing;
+    ui bool isViewingMenu;
     ui Array<LSS_Weapon> currentWeapons; // Stored how the player orders it
     ui String bufferedWeaponString; // The weapon currently being switched to
     ui Weapon lastUsedWeapon; // Used to swap to the previous weapon
@@ -16,6 +16,8 @@ class LSS_EventHandler : EventHandler
     ui Vector2 highlightedSlot; // Slot to highlight when picking up a new gun
     ui int slotTimers[10];
     ui bool hasActiveTimer; // True if there is at least one timer active
+    ui PlayerInfo playerViewing; // Usually yourself
+    ui String netSlots[10]; // To save whenever needed
 
     ui bool keyDown;
     private bool uninstallingMod;
@@ -73,13 +75,31 @@ class LSS_EventHandler : EventHandler
         }
         else if (event.Name == "LSS_ForceNotEditing")
         {
-            isEditing = false;
+            isViewingMenu = false;
 
             slotSelected = (-1, -1);
             hasSlotSelected = false;
             selectedWeaponString = "";
 
             SendNetworkEvent("LSS_NotEditing");
+        }
+        // Forces the player being spied on to update their slots
+        else if (event.Name == "LSS_UpdateNetSlots")
+        {
+            // Save CVars
+            CVar cvar;
+            int currentSlot;
+            for (int i = 0; i < 10; i++)
+            {
+                //Console.printf(netSlots[i]);
+                currentSlot = (i == 9) ? 0 : i + 1;
+
+                // owner.player is used to transer user CVars across the network
+                // players[ConsolePlayer] DOES NOT WORK!!
+                cvar = CVar.GetCVar("LSS_NetSlot"..currentSlot, players[ConsolePlayer]);
+
+                cvar.SetString(netSlots[i]);
+            }
         }
     }
 
@@ -123,6 +143,9 @@ class LSS_EventHandler : EventHandler
             SaveCurrentWeaponsToDisk();
 
             PlayerSlotNumberSelected(slot);
+
+            // If spying, then reset the weapons to show the spying player
+            if (GetSpyTarget() != players[ConsolePlayer]) UpdateCurrentWeaponsArray(true);
         }
 
         // Player switches to the previous weapon
@@ -142,13 +165,20 @@ class LSS_EventHandler : EventHandler
         }
         
         // Player tries to edit
-        else if (event.Name == "LSS_Edit" && players[ConsolePlayer].health != 0)
+        else if (event.Name == "LSS_Edit" && GetSpyTarget().health != 0)
         {
             UpdateCurrentWeaponsArray();
             SaveCurrentWeaponsToDisk();
-            isEditing = !isEditing;
+            isViewingMenu = !isViewingMenu;
+            // Check if viewing another player
+            if (GetSpyTarget() != players[ConsolePlayer])
+            {
+                slotSelected = (-1, -1);
+                hasSlotSelected = false;
+                selectedWeaponString = "";
+            }
             // Allow the play scope to know that the player is editing
-            if (isEditing)
+            else if (isViewingMenu)
             {
                 slotSelected = (-1, -1);
                 hasSlotSelected = false;
@@ -165,6 +195,8 @@ class LSS_EventHandler : EventHandler
             {
                 SendNetworkEvent("LSS_NotEditing");
             }
+            
+            UpdateCurrentWeaponsArray(true);
 
             // Debugging
             //int randomWeaponIndex = crandom(0, currentWeapons.Size() - 1);
@@ -239,6 +271,9 @@ class LSS_EventHandler : EventHandler
             SaveCurrentWeaponsToDisk();
 
             PlayerSlotNumberSelected(weaponSlot);
+
+            // If spying, then reset the weapons to show the spying player
+            if (GetSpyTarget() != players[ConsolePlayer]) UpdateCurrentWeaponsArray(true);
         }
 
         // Key released
@@ -261,7 +296,7 @@ class LSS_EventHandler : EventHandler
             mouseReleased = true;
         }
 
-        return false;
+        return true;
     }
 
     override void NetworkProcess(ConsoleEvent event)
@@ -294,6 +329,35 @@ class LSS_EventHandler : EventHandler
             self.RequireMouse = false;
         }
 
+        // Update some player's net slots
+        else if (event.Name.Left(17) == "LSS_UpdateNetSlot")
+        {
+            int currentSlot = event.Args[0];
+            int playerToUpdate = event.Args[1];
+            String cvarData = event.Name.Mid(17);
+            //Console.printf("From %i: update %i!", event.Player, playerToUpdate);
+            //Console.printf("cvarData: %s", cvarData);
+
+            // event.Player is the person spying and requesting the inventory update
+            // playerToUpdate is the one being spyed on and must update their inventory
+            //SendInterfaceEvent(ConsolePlayer, "LSS_UpdateNetSlots", playerToUpdate);
+            // Save CVars
+            CVar cvar;
+
+            currentSlot = (currentSlot == 9) ? 0 : currentSlot + 1;
+
+            cvar = CVar.GetCVar("LSS_NetSlot"..currentSlot, players[playerToUpdate]);
+
+            cvar.SetString(cvarData);
+            Console.printf(cvarData);
+            //Console.printf("CVar data: %s", CVar.GetCVar("LSS_NetSlot"..currentSlot, players[playerToUpdate]).GetString());
+        }
+        else if (event.Name.Left(7) == "LSS_???")
+        {
+            Console.printf("Yes it did.");
+            CVar.GetCVar("LSS_NetSlot5", players[event.Player]).SetString("Did this work?");
+        }
+
         // Uninstall the mod by deleting the event handler, only if it is the arbitrator
         else if (event.Name == "LSS_Uninstall")
         {
@@ -314,6 +378,34 @@ class LSS_EventHandler : EventHandler
     override void UiTick()
     {
         if (!LSS_PreviewOnWeaponPickup && !LSS_PreviewOnWeaponDrop) return;
+
+        bool switchedView = false;
+
+        // Set timers to 0 if switching views
+        if (playerViewing == null)
+        {
+            playerViewing = GetSpyTarget();
+        }
+        else if (playerViewing != GetSpyTarget())
+        {
+            //Console.printf("Switched target!");
+            switchedView = true;
+            
+            // Kick the player out of the menu if they switch to themselves
+            if (isViewingMenu && GetSpyTarget() == players[ConsolePlayer])
+            {
+                SendInterfaceEvent(ConsolePlayer, "LSS_ForceNotEditing");
+            }
+
+            SendInterfaceEvent(ConsolePlayer, "LSS_ResetSlotTimers");
+            playerViewing = GetSpyTarget();
+        }
+        
+        if (GetSpyTarget() != players[ConsolePlayer])
+        {
+            UpdateCurrentWeaponsArray(true);
+            SaveCurrentWeaponsToDisk();
+        }
 
         // Decrement the timers if one is active
         if (hasActiveTimer)
@@ -336,7 +428,7 @@ class LSS_EventHandler : EventHandler
         // GZDoom's inventory can be parsed through as a linked list, where
         // Inv is the next item in the list.
         Array<Weapon> tempWeaponList;
-        Let player = players[Consoleplayer];
+        Let player = GetSpyTarget();
         for (let item = player.mo.Inv; item != null; item = item.Inv)
         {
             // Cast item as a weapon
@@ -348,12 +440,16 @@ class LSS_EventHandler : EventHandler
             tempWeaponList.Push(playerWeapon);
         }
 
-        // If the same size, do nothing for performance
-        if (weaponList.Size() == tempWeaponList.Size()) return;
-        // Picked up a new weapon
-        else if (weaponList.Size() < tempWeaponList.Size() && LSS_PreviewOnWeaponPickup) PlayerPickedUpNewWeapon(tempWeaponList);
-        // Dropped a weapon
-        else if (LSS_PreviewOnWeaponDrop) PlayerDroppedWeapon(tempWeaponList);
+        // Do not show previews whenever the view switches
+        if (!switchedView)
+        {
+            // If the same size, do nothing for performance
+            if (weaponList.Size() == tempWeaponList.Size()) return;
+            // Picked up a new weapon
+            else if (weaponList.Size() < tempWeaponList.Size() && LSS_PreviewOnWeaponPickup) PlayerPickedUpNewWeapon(tempWeaponList);
+            // Dropped a weapon
+            else if (LSS_PreviewOnWeaponDrop) PlayerDroppedWeapon(tempWeaponList);
+        }
 
         // Set up weaponList for the next tick.
         weaponList = tempWeaponList;
@@ -375,9 +471,11 @@ class LSS_EventHandler : EventHandler
     /***
     * Iterates through the player's inventory, looking for weapons
     */
-    ui void UpdateCurrentWeaponsArray()
+    ui void UpdateCurrentWeaponsArray(bool isCosmetic = false)
     {
-        Let player = players[Consoleplayer];
+        PlayerInfo player = players[ConsolePlayer];
+        if (isCosmetic) player = GetSpyTarget();
+
         Array<LSS_Weapon> tempWeaponArray;
         int defaultSlot = -1;
         int priority;
@@ -425,67 +523,125 @@ class LSS_EventHandler : EventHandler
         int row[10];
         LSS_Weapon tempWeapon;
 
-        for (int slot = 0; slot < 10; slot++)
+        // Correct version, ONLY for yourself
+        if (GetSpyTarget() == players[ConsolePlayer] || !isCosmetic)
         {
-            int currentSlot = (slot == 9) ? 0 : slot + 1;
-
-            // This is the list of weapons for the slot
-            String savedWeaponString = CVar.GetCvar("LSS_Slot"..currentSlot, players[ConsolePlayer]).GetString();
-            //Console.printf(savedWeaponString);
-
-            // Here the list is split by comma into the weaponList
-            Array<String> savedWeaponList;
-            savedWeaponString.Split(savedWeaponList, ",");
-
-            // Check each saved weapon in the comma separated list
-            for (int savedWeapon = 0; savedWeapon < savedWeaponList.Size(); savedWeapon++)
+            for (int slot = 0; slot < 10; slot++)
             {
-                //Console.printf("Weapon in CVar: "..savedWeaponList[savedWeapon]);
-                // Check if the saved weapon is currently held
-                // We go backwards to more easily remove weapons from the list
-                for (int currentWeapon = tempWeaponArray.Size() - 1; currentWeapon >= 0; currentWeapon--)
+                int currentSlot = (slot == 9) ? 0 : slot + 1;
+
+                // This is the list of weapons for the slot
+                String savedWeaponString = CVar.GetCvar("LSS_Slot"..currentSlot, players[ConsolePlayer]).GetString();
+                //Console.printf(savedWeaponString);
+
+                // Here the list is split by comma into the weaponList
+                Array<String> savedWeaponList;
+                savedWeaponString.Split(savedWeaponList, ",");
+
+                // Check each saved weapon in the comma separated list
+                for (int savedWeapon = 0; savedWeapon < savedWeaponList.Size(); savedWeapon++)
                 {
-                    if (savedWeaponList[savedWeapon] == tempWeaponArray[currentWeapon].weapon.GetClassName())
+                    //Console.printf("Weapon in CVar: "..savedWeaponList[savedWeapon]);
+                    // Check if the saved weapon is currently held
+                    // We go backwards to more easily remove weapons from the list
+                    for (int currentWeapon = tempWeaponArray.Size() - 1; currentWeapon >= 0; currentWeapon--)
                     {
-                        tempWeapon = tempWeaponArray[currentWeapon];
-                        tempWeapon.slot = slot;
-                        tempWeapon.row = row[slot];
-                        currentWeapons.push(tempWeapon);
+                        if (savedWeaponList[savedWeapon] == tempWeaponArray[currentWeapon].weapon.GetClassName())
+                        {
+                            tempWeapon = tempWeaponArray[currentWeapon];
+                            tempWeapon.slot = slot;
+                            tempWeapon.row = row[slot];
+                            currentWeapons.push(tempWeapon);
 
-                        //Console.printf(" Temp weapon: "..tempWeapon.weapon.GetClassName());
+                            //Console.printf(" Temp weapon: "..tempWeapon.weapon.GetClassName());
 
-                        tempWeaponArray.Delete(currentWeapon);
-                        //currentWeapon--;
-                        //Console.printf(" tempWeaponArray size: "..tempWeaponArray.Size());
-                        row[slot]++;
+                            tempWeaponArray.Delete(currentWeapon);
+                            //currentWeapon--;
+                            //Console.printf(" tempWeaponArray size: "..tempWeaponArray.Size());
+                            row[slot]++;
+                        }
                     }
                 }
             }
+
+            // These weapons did not get popped, meaning they were not already saved in the CVar
+            // Assign their default slots, priority might be unpredictable
+            for (int i = 0; i < tempWeaponArray.Size(); i++)
+            {
+                tempWeapon = tempWeaponArray[i];
+                
+                int storedSlot = (tempWeapon.slot != 0) ? tempWeapon.slot - 1 : 9;
+
+                // In case of slots out of range
+                if (storedSlot > 9) storedSlot = 9;
+                else if (storedSlot < 0) storedSlot = 0;
+
+                tempWeapon.slot = storedSlot;
+
+                tempWeapon.row = row[tempWeapon.slot];
+                row[tempWeapon.slot]++;
+
+                //Console.printf(" Temp weapon2: "..tempWeapon.weapon.GetClassName());
+
+                //Console.printf(tempWeapon.weapon.GetClassName().." stored in slot index %i", tempWeapon.slot);
+
+                // Finally add to the array
+                currentWeapons.Push(tempWeapon);
+            }
         }
 
-        // These weapons did not get popped, meaning they were not already saved in the CVar
-        // Assign their default slots, priority might be unpredictable
-        for (int i = 0; i < tempWeaponArray.Size(); i++)
+        // Potentially wrong version, ONLY when spying
+        else
         {
-            tempWeapon = tempWeaponArray[i];
-            
-            int storedSlot = (tempWeapon.slot != 0) ? tempWeapon.slot - 1 : 9;
+            //Console.printf("Got here");
+            //Console.printf("Weapon count: %i", tempWeaponArray.Size());
+            int weaponCount[10]; // Cannot exceed 8 because (19 characters, and comma) * 8 < 255 character limit
+            int currentSlot;
+            String weaponName;
 
-            // In case of slots out of range
-            if (storedSlot > 9) storedSlot = 9;
-            else if (storedSlot < 0) storedSlot = 0;
+            for (int slot = 0; slot < 10; slot++)
+            {
+                currentSlot = (slot == 9) ? 0 : slot + 1;
 
-            tempWeapon.slot = storedSlot;
+                // We can cheat here because we already know the order
+                
+                // This is the list of weapons for the slot
+                String savedWeaponString = CVar.GetCvar("LSS_NetSlot"..currentSlot, GetSpyTarget()).GetString();
+                //Console.printf(savedWeaponString);
 
-            tempWeapon.row = row[tempWeapon.slot];
-            row[tempWeapon.slot]++;
+                // Here the list is split by comma into the weaponList
+                Array<String> savedWeaponList;
+                savedWeaponString.Split(savedWeaponList, ",");
 
-            //Console.printf(" Temp weapon2: "..tempWeapon.weapon.GetClassName());
+                // Check each saved weapon in the comma separated list
+                for (int savedWeapon = 0; savedWeapon < savedWeaponList.Size(); savedWeapon++)
+                {
+                    //Console.printf("Weapon in CVar: "..savedWeaponList[savedWeapon]);
+                    // Check if the saved weapon is currently held
+                    // We go backwards to more easily remove weapons from the list
+                    for (int currentWeapon = tempWeaponArray.Size() - 1; currentWeapon >= 0; currentWeapon--)
+                    {
+                        weaponName = tempWeaponArray[currentWeapon].weapon.GetClassName();
 
-            //Console.printf(tempWeapon.weapon.GetClassName().." stored in slot index %i", tempWeapon.slot);
+                        // If the first 19 characters match AND less than 8 weapons
+                        if (savedWeaponList[savedWeapon] == weaponName.Left(19) &&
+                            row[slot] < 8)
+                        {
+                            tempWeapon = tempWeaponArray[currentWeapon];
+                            tempWeapon.slot = slot;
+                            tempWeapon.row = row[slot];
+                            currentWeapons.push(tempWeapon);
 
-            // Finally add to the array
-            currentWeapons.Push(tempWeapon);
+                            //Console.printf(" Temp weapon: "..tempWeapon.weapon.GetClassName());
+
+                            tempWeaponArray.Delete(currentWeapon);
+                            //currentWeapon--;
+                            //Console.printf(" tempWeaponArray size: "..tempWeaponArray.Size());
+                            row[slot]++;
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -496,46 +652,110 @@ class LSS_EventHandler : EventHandler
     */
     ui void SaveCurrentWeaponsToDisk()
     {
-        int currentSlot;
-        //Console.printf(" currentWeapons.Size(): "..currentWeapons.Size());
-        // Check for each weapon
-        for (let i = 0; i < currentWeapons.Size(); i++)
+        int playerIndex = ConsolePlayer;
+
+        for (int i = 0; i < players.Size(); i++)
         {
-            //Console.printf(" currentWeapon: "..currentWeapons[i].weapon.GetClassName());
-            // First we check if the weapons are saved
-            bool isSaved = false;
-            for (int slot = 0; slot < 10; slot++)
+            if (players[i] == GetSpyTarget())
             {
-                // The slots are saved as follows:
-                // LSS_Slot2=Pistol,Shotgun,Chaingun,
-                // LSS_Slot3=BFG9000,
+                playerIndex = i;
+            }
+        }
+        // Do nothing if it's yourself
+        // Send to everyone else
+        if (playerIndex != ConsolePlayer)
+        {
+            // Save just the current weapons to the LSS Net Slot CVars so other players can see them
+            // Instantiate the Strings to save
+            //netSlots.Clear();
+            int weaponCount[10]; // Cannot exceed 8 because (19 characters, and comma) * 10 < 255 character limit
+            String weaponName;
+            for (int i = 0; i < 10; i++)
+            {
+                netSlots[i] = ",";
+            }
 
-                // This is the list of weapons for the slot
-                currentSlot = (slot == 9) ? 0 : slot + 1;
-                String weaponString = CVar.GetCvar("LSS_Slot"..currentSlot, players[ConsolePlayer]).GetString();
-                //Console.printf(weaponString);
-
-                // Here the list is split by comma into the weaponCVars
-                Array<String> weaponCVars;
-                weaponString.Split(weaponCVars, ",");
-
-                // Check if the weapon is in the list
-                if (weaponCVars.Find(currentWeapons[i].weapon.GetClassName()) != weaponCVars.Size())
+            // Parse each weapon and add it to the slot
+            for (int i = 0; i < currentWeapons.Size(); i++)
+            {
+                if (weaponCount[currentWeapons[i].slot] < 8)
                 {
-                    //Console.printf("Weapon "..currentWeapons[i].weapon.GetClassName().." found!!");
-                    isSaved = true;
+                    weaponCount[currentWeapons[i].slot]++;
+                    weaponName = currentWeapons[i].weapon.GetClassName();
+                    netSlots[currentWeapons[i].slot] = ""..netSlots[currentWeapons[i].slot]..weaponName.Left(19)..",";
                 }
             }
 
-            // If not saved, then we save them
-            if (!isSaved)
-            {
-                // Read the existing cvar
-                currentSlot = (currentWeapons[i].slot == 9) ? 0 : currentWeapons[i].slot + 1;
-                CVar toSave = CVar.GetCvar("LSS_Slot"..currentSlot, players[ConsolePlayer]);
+            // Send to everyone
+            //SendInterfaceEvent(ConsolePlayer, "LSS_UpdateNetSlotsNum");
 
-                // Override it, appending the new weapon to the end
-                toSave.SetString(""..toSave.GetString()..currentWeapons[i].weapon.GetClassName()..",");
+
+            for (int i = 0; i < 10; i++)
+            {
+                SendNetworkEvent("LSS_UpdateNetSlot"..netSlots[i], i, playerIndex);
+            }
+            //Console.printf("LSS_UpdateNetSlotsNum"..playerIndex);
+
+            /*
+            // Save CVars
+            CVar cvar;
+            for (int i = 0; i < 10; i++)
+            {
+                //Console.printf(netSlots[i]);
+                currentSlot = (i == 9) ? 0 : i + 1;
+
+                // owner.player is used to transer user CVars across the network
+                // players[ConsolePlayer] DOES NOT WORK!!
+                cvar = CVar.GetCVar("LSS_NetSlot"..currentSlot, players[ConsolePlayer]);
+
+                cvar.SetString(netSlots[i]);
+            }
+            */
+        }
+        else
+        {
+
+            int currentSlot;
+            //Console.printf(" currentWeapons.Size(): "..currentWeapons.Size());
+            // Check for each weapon
+            for (let i = 0; i < currentWeapons.Size(); i++)
+            {
+                //Console.printf(" currentWeapon: "..currentWeapons[i].weapon.GetClassName());
+                // First we check if the weapons are saved
+                bool isSaved = false;
+                for (int slot = 0; slot < 10; slot++)
+                {
+                    // The slots are saved as follows:
+                    // LSS_Slot2=Pistol,Shotgun,Chaingun,
+                    // LSS_Slot3=BFG9000,
+
+                    // This is the list of weapons for the slot
+                    currentSlot = (slot == 9) ? 0 : slot + 1;
+                    String weaponString = CVar.GetCvar("LSS_Slot"..currentSlot, players[ConsolePlayer]).GetString();
+                    //Console.printf(weaponString);
+
+                    // Here the list is split by comma into the weaponCVars
+                    Array<String> weaponCVars;
+                    weaponString.Split(weaponCVars, ",");
+
+                    // Check if the weapon is in the list
+                    if (weaponCVars.Find(currentWeapons[i].weapon.GetClassName()) != weaponCVars.Size())
+                    {
+                        //Console.printf("Weapon "..currentWeapons[i].weapon.GetClassName().." found!!");
+                        isSaved = true;
+                    }
+                }
+
+                // If not saved, then we save them
+                if (!isSaved)
+                {
+                    // Read the existing cvar
+                    currentSlot = (currentWeapons[i].slot == 9) ? 0 : currentWeapons[i].slot + 1;
+                    CVar toSave = CVar.GetCvar("LSS_Slot"..currentSlot, players[ConsolePlayer]);
+
+                    // Override it, appending the new weapon to the end
+                    toSave.SetString(""..toSave.GetString()..currentWeapons[i].weapon.GetClassName()..",");
+                }
             }
         }
     }
@@ -1047,6 +1267,23 @@ class LSS_EventHandler : EventHandler
             innerColorAlt.SetString("9c 58 d1");
             highlightColor.SetString("ff ff ff");
             heldWeaponColor.SetString("ff ff ff");
+        }
+    }
+
+    /***
+    *   Returns the player that is being viewed through.
+    *   Returns yourself if viewing something not a player.
+    */
+    ui PlayerInfo GetSpyTarget()
+    {
+        // If spying on another player
+        if (players[ConsolePlayer].Camera.player != null)
+        {
+            return players[ConsolePlayer].Camera.player;
+        }
+        else
+        {
+            return players[ConsolePlayer];
         }
     }
 }

@@ -35,7 +35,7 @@ extend class LSS_EventHandler
             }
         }
 
-        if (!isEditing && !hasActiveTimer)
+        if (!isViewingMenu && !hasActiveTimer)
         {
             return;
         }
@@ -62,7 +62,7 @@ extend class LSS_EventHandler
         // Set each slot alpha
         for (int i = 0; i < 10; i++)
         {
-            if (isEditing)
+            if (isViewingMenu)
             {
                 slotAlphaPercentages[i] = 1.0;
             }
@@ -79,7 +79,7 @@ extend class LSS_EventHandler
         }
 
         // Set the target alpha
-        targetAlpha = (isEditing) ? LSS_AlphaValue : LSS_PreviewAlphaValue;
+        targetAlpha = (isViewingMenu) ? LSS_AlphaValue : LSS_PreviewAlphaValue;
         
         slotNumberColor = LSS_SlotNumberColor;
         weaponNameColor = LSS_WeaponNameColor;
@@ -98,67 +98,74 @@ extend class LSS_EventHandler
         // Draw the empty frame
         DrawFrame();
 
-        // Calculate which slot should have been clicked on
-        mouseSlot = CalculateSlotUnderMouse();
-
-        // Insertion
-        // Need to alternate
-        if (mouseClicked) 
+        if (playerViewing == players[ConsolePlayer])
         {
-            mouseClicked = false;
-            mouseReleased = false;
-            // Calculate if it was a valid click
-            if (!hasSlotSelected)
+            // Calculate which slot should have been clicked on
+            mouseSlot = CalculateSlotUnderMouse();
+
+            // Insertion
+            // Need to alternate
+            if (mouseClicked) 
             {
-                tryingToSwap = true;
-                CalculateMouseClick(mouseSlot.X, mouseSlot.Y);
-            }
-            // Replace the slot
-            else
-            {
-                if (ReplaceSlot(mouseSlot.X, mouseSlot.Y))
+                mouseClicked = false;
+                mouseReleased = false;
+                // Calculate if it was a valid click
+                if (!hasSlotSelected)
                 {
-                    // Play successful sound
+                    tryingToSwap = true;
+                    CalculateMouseClick(mouseSlot.X, mouseSlot.Y);
+                }
+                // Replace the slot
+                else
+                {
+                    if (ReplaceSlot(mouseSlot.X, mouseSlot.Y))
+                    {
+                        // Play successful sound
+                        players[ConsolePlayer].mo.A_StartSound("LSS_SelectSound", 0, CHANF_UI == true, LSS_UIVolume, ATTN_NONE, cfrandom(0.5, 1.5));
+                    }
+                    else
+                    {
+                        // Play invalid sound
+                        players[ConsolePlayer].mo.A_StartSound("LSS_InvalidSound", 0, CHANF_UI == true, LSS_UIVolume, ATTN_NONE, 1);
+                    }
+                }
+            }
+            
+            // Swapping
+            if (mouseReleased && hasSlotSelected)
+            {
+                mouseReleased = false;
+
+                // Check if released on the same slot, is so, then do nothing
+                if (slotSelected == mouseSlot)
+                {
+                    tryingToSwap = false;
+                    //Console.printf("Not swapping.");
+
+                    // Playsound
                     players[ConsolePlayer].mo.A_StartSound("LSS_SelectSound", 0, CHANF_UI == true, LSS_UIVolume, ATTN_NONE, cfrandom(0.5, 1.5));
                 }
                 else
                 {
-                    // Play invalid sound
-                    players[ConsolePlayer].mo.A_StartSound("LSS_InvalidSound", 0, CHANF_UI == true, LSS_UIVolume, ATTN_NONE, 1);
+                    tryingToSwap = false;
+                    //Console.printf("Swapping!");
+                    
+                    if (SwapSlot(slotSelected, mouseSlot))
+                    {
+                        // Play successful sound
+                        players[ConsolePlayer].mo.A_StartSound("LSS_SwapSound", 0, CHANF_UI == true, LSS_UIVolume, ATTN_NONE, cfrandom(0.8, 1.2));
+                    }
+                    else
+                    {
+                        // Play invalid sound
+                        players[ConsolePlayer].mo.A_StartSound("LSS_InvalidSound", 0, CHANF_UI == true, LSS_UIVolume, ATTN_NONE, 1);
+                    }
                 }
             }
         }
-        
-        // Swapping
-        if (mouseReleased && hasSlotSelected)
+        else
         {
-            mouseReleased = false;
-
-            // Check if released on the same slot, is so, then do nothing
-            if (slotSelected == mouseSlot)
-            {
-                tryingToSwap = false;
-                //Console.printf("Not swapping.");
-
-                // Playsound
-                players[ConsolePlayer].mo.A_StartSound("LSS_SelectSound", 0, CHANF_UI == true, LSS_UIVolume, ATTN_NONE, cfrandom(0.5, 1.5));
-            }
-            else
-            {
-                tryingToSwap = false;
-                //Console.printf("Swapping!");
-                
-                if (SwapSlot(slotSelected, mouseSlot))
-                {
-                    // Play successful sound
-                    players[ConsolePlayer].mo.A_StartSound("LSS_SwapSound", 0, CHANF_UI == true, LSS_UIVolume, ATTN_NONE, cfrandom(0.8, 1.2));
-                }
-                else
-                {
-                    // Play invalid sound
-                    players[ConsolePlayer].mo.A_StartSound("LSS_InvalidSound", 0, CHANF_UI == true, LSS_UIVolume, ATTN_NONE, 1);
-                }
-            }
+            mouseSlot = (-1, -1);
         }
 
         DrawWeaponBoxes();
@@ -223,7 +230,7 @@ extend class LSS_EventHandler
         for (int i = 0; i < 10; i++)
         {
             // Skip if not editing and no timers
-            if (!isEditing && slotTimers[i] == 0) continue;
+            if (!isViewingMenu && slotTimers[i] == 0) continue;
 
             // Alternating colors
             color1 = (i % 2 == 0) ? outerColor : outerColorAlt;
@@ -294,14 +301,14 @@ extend class LSS_EventHandler
             slotRowCount[currentWeapon.slot]++;
 
             // Skip if weaponpickup and row has timer
-            if (!isEditing && slotTimers[currentWeapon.slot] == 0) continue;
+            if (!isViewingMenu && slotTimers[currentWeapon.slot] == 0) continue;
 
             // Alternating colors
             color1 = (currentWeapon.slot % 2 == 0) ? outerColor : outerColorAlt;
             color2 = (currentWeapon.slot % 2 == 0) ? innerColor : innerColorAlt;
 
             // Highlight newest gun picked up
-            if (!isEditing && (currentWeapon.slot, currentWeapon.row) == highlightedSlot)
+            if (!isViewingMenu && (currentWeapon.slot, currentWeapon.row) == highlightedSlot)
             {
                 color2 = highlightColor;
             }
@@ -319,7 +326,7 @@ extend class LSS_EventHandler
             else if (tryingToSwap && selectedWeaponString != "")
             {
                 // Highlight the slot selected with the mouse                
-                if (isEditing && !hasSlotSelected && mouseSlot == (currentWeapon.slot, currentWeapon.row))
+                if (isViewingMenu && !hasSlotSelected && mouseSlot == (currentWeapon.slot, currentWeapon.row))
                 {
                     color2 = highlightColor;
                 }
@@ -362,7 +369,7 @@ extend class LSS_EventHandler
                     color2 = highlightColor;
                 }
                 // Border if weapon is held by the player
-                if (players[Consoleplayer].ReadyWeapon != null && currentWeapon.weapon != null && players[Consoleplayer].ReadyWeapon.GetClassName() == currentWeapon.weapon.GetClassName())
+                if (GetSpyTarget().ReadyWeapon != null && currentWeapon.weapon != null && GetSpyTarget().ReadyWeapon.GetClassName() == currentWeapon.weapon.GetClassName())
                 {
                     color1 = heldWeaponColor;
                 }
@@ -412,9 +419,9 @@ extend class LSS_EventHandler
             color2 = (ghostX % 2 == 0) ? innerColor : innerColorAlt;
 
             // Border if weapon is held
-            if (players[Consoleplayer].ReadyWeapon != null &&
+            if (GetSpyTarget().ReadyWeapon != null &&
                 selectedWeaponObject.weapon != null &&
-                players[Consoleplayer].ReadyWeapon.GetClassName() == selectedWeaponObject.weapon.GetClassName())
+                GetSpyTarget().ReadyWeapon.GetClassName() == selectedWeaponObject.weapon.GetClassName())
             {
                 color1 = heldWeaponColor;
             }
@@ -452,7 +459,7 @@ extend class LSS_EventHandler
 
                 // Border if weapon is held by the player
                 if (
-                    players[Consoleplayer].ReadyWeapon.GetClassName() == selectedWeaponObject.GetClassName())
+                    GetSpyTarget().ReadyWeapon.GetClassName() == selectedWeaponObject.GetClassName())
                 {
                     color1 = heldWeaponColor;
                 }

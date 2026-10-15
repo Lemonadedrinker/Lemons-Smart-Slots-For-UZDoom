@@ -34,3 +34,14 @@ nosave user String LSS_Slot7 = ",";
 nosave user String LSS_Slot8 = ",";
 nosave user String LSS_Slot9 = ",";
 nosave user String LSS_Slot0 = ",";
+
+noarchive user String LSS_NetSlot1 = ",";
+noarchive user String LSS_NetSlot2 = ",";
+noarchive user String LSS_NetSlot3 = ",";
+noarchive user String LSS_NetSlot4 = ",";
+noarchive user String LSS_NetSlot5 = ",";
+noarchive user String LSS_NetSlot6 = ",";
+noarchive user String LSS_NetSlot7 = ",";
+noarchive user String LSS_NetSlot8 = ",";
+noarchive user String LSS_NetSlot9 = ",";
+noarchive user String LSS_NetSlot0 = ",";
