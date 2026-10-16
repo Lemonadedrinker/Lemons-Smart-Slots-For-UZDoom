@@ -578,16 +578,9 @@ extend class LSS_EventHandler
 
         // Retrieving the sprite texture
         TextureID texture;
-        // Flags from: https://zdoom.org/wiki/GetInventoryIcon
-        int flags = 1 + 2 + 8 + 16;
-        if (BaseStatusBar.GetInventoryIcon(currentWeapon.weapon, flags))
-        {
-            texture = BaseStatusBar.GetInventoryIcon(currentWeapon.weapon, flags);
-        }
-        else
-        {
-            texture = currentWeapon.weapon.FindState("Spawn", true).GetSpriteTexture(0, 0, (0, 0));
-        }
+        // Gets the texture with the virtual function or
+        // with an overridden function if an addon is installed.
+        if (!texture.IsValid()) texture = GetTexture(currentWeapon);
 
         //Console.printf("%i", TexMan.CheckRealHeight(texture));
 
